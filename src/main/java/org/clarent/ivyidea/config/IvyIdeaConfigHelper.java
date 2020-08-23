@@ -18,7 +18,7 @@ package org.clarent.ivyidea.config;
 
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.roots.ModifiableRootModel;
+import com.intellij.openapi.roots.DependencyScope;
 import com.intellij.util.net.HttpConfigurable;
 import org.apache.ivy.core.resolve.ResolveOptions;
 import org.apache.ivy.core.settings.IvySettings;
@@ -40,7 +40,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.text.ParseException;
-import java.util.*;                                                                                    
+import java.util.*;
 
 /**
  * Handles retrieval of settings from the configuration.
@@ -51,25 +51,6 @@ import java.util.*;
  * @author Guy Mahieu
  */
 public class IvyIdeaConfigHelper {
-
-    private static final String RESOLVED_LIB_NAME_ROOT = "IvyIDEA";
-
-    public static String getCreatedLibraryName(final ModifiableRootModel model, final String configName) {
-        final Project project = model.getProject();
-        String libraryName = RESOLVED_LIB_NAME_ROOT;
-        if (isLibraryNameIncludesModule(project)) {
-            final String moduleName = model.getModule().getName();
-            libraryName += "-" + moduleName;
-        }
-        if (isLibraryNameIncludesConfiguration(project)) {
-            libraryName += "-" + configName;
-        }
-        return libraryName;
-    }
-
-    public static boolean isCreatedLibraryName(final String libraryName) {
-        return libraryName != null && libraryName.startsWith(RESOLVED_LIB_NAME_ROOT);
-    }
 
     @NotNull
     public static ResolveOptions createResolveOptions(Module module) {
@@ -98,20 +79,30 @@ public class IvyIdeaConfigHelper {
         }
     }
 
+    @NotNull
+    public static Map<String, DependencyScope> getDependencyScopes(Module module) {
+        IvyIdeaProjectSettings projectConfig = getProjectConfig(module.getProject());
+        Map<String, DependencyScope> dependencyScopes = new HashMap<>(projectConfig.getDependencyScopes());
+        final IvyIdeaFacetConfiguration moduleConfiguration = IvyIdeaFacetConfiguration.getInstance(module);
+        if (moduleConfiguration != null) {
+            Map<String, DependencyScope> moduleDependencyScopes = moduleConfiguration.getDependencyScopes();
+            for (Map.Entry<String, DependencyScope> entry : moduleDependencyScopes.entrySet()) {
+                DependencyScope dependencyScope = entry.getValue();
+                if (dependencyScope != null) {
+                    String configurationName = entry.getKey();
+                    dependencyScopes.put(configurationName, dependencyScope);
+                }
+            }
+        }
+        return Collections.unmodifiableMap(dependencyScopes);
+    }
+
     public static ArtifactTypeSettings getArtifactTypeSettings(Project project)   {
         return getProjectConfig(project).getArtifactTypeSettings();
     }
 
     public static List<String> getPropertiesFiles(Project project) {
          return getProjectConfig(project).getPropertiesSettings().getPropertyFiles();
-    }
-
-    public static boolean isLibraryNameIncludesModule(final Project project) {
-        return getProjectConfig(project).isLibraryNameIncludesModule();
-    }
-
-    public static boolean isLibraryNameIncludesConfiguration(final Project project) {
-        return getProjectConfig(project).isLibraryNameIncludesConfiguration();
     }
 
     public static IvyLogLevel getIvyLoggingThreshold(final Project project) {

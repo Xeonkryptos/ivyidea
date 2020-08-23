@@ -16,8 +16,12 @@
 
 package org.clarent.ivyidea.config.model;
 
+import com.intellij.openapi.roots.DependencyScope;
 import org.apache.ivy.core.resolve.ResolveOptions;
 import org.clarent.ivyidea.logging.IvyLogLevel;
+
+import java.util.Collections;
+import java.util.Map;
 
 /**
  * @author Guy Mahieu
@@ -32,12 +36,10 @@ public class IvyIdeaProjectSettings {
     private boolean resolveInBackground = false;
     private boolean alwaysAttachSources = true;
     private boolean alwaysAttachJavadocs = true;
-    private boolean libraryNameIncludesModule = false;
-    private boolean libraryNameIncludesConfiguration = false;
     private boolean detectDependenciesOnOtherModules = true;
     private boolean detectDependenciesOnOtherModulesOfSameVersion = false;
     private String ivyLogLevelThreshold = IvyLogLevel.None.name();
-
+    private Map<String, DependencyScope> dependencyScopes = Collections.emptyMap();
 
     private ArtifactTypeSettings artifactTypeSettings = new ArtifactTypeSettings();
 
@@ -115,22 +117,6 @@ public class IvyIdeaProjectSettings {
         this.propertiesSettings = propertiesSettings;
     }
 
-    public boolean isLibraryNameIncludesModule() {
-        return libraryNameIncludesModule;
-    }
-
-    public void setLibraryNameIncludesModule(final boolean libraryNameIncludesModule) {
-        this.libraryNameIncludesModule = libraryNameIncludesModule;
-    }
-
-    public boolean isLibraryNameIncludesConfiguration() {
-        return libraryNameIncludesConfiguration;
-    }
-
-    public void setLibraryNameIncludesConfiguration(final boolean libraryNameIncludesConfiguration) {
-        this.libraryNameIncludesConfiguration = libraryNameIncludesConfiguration;
-    }
-
     public boolean isDetectDependenciesOnOtherModules() {
         return detectDependenciesOnOtherModules;
     }
@@ -161,6 +147,14 @@ public class IvyIdeaProjectSettings {
 
     public void setArtifactTypeSettings(ArtifactTypeSettings artifactTypeSettings) {
         this.artifactTypeSettings = artifactTypeSettings;
+    }
+
+    public Map<String, DependencyScope> getDependencyScopes() {
+        return dependencyScopes;
+    }
+
+    public void setDependencyScopes(Map<String, DependencyScope> dependencyScopes) {
+        this.dependencyScopes = dependencyScopes;
     }
 
     public void updateResolveOptions(ResolveOptions options) {

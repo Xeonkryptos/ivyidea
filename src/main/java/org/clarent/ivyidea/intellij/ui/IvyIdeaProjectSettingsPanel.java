@@ -18,6 +18,7 @@ package org.clarent.ivyidea.intellij.ui;
 
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.roots.DependencyScope;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.ui.UserActivityWatcher;
@@ -25,10 +26,13 @@ import org.clarent.ivyidea.config.model.IvyIdeaProjectSettings;
 import org.clarent.ivyidea.config.model.PropertiesSettings;
 import org.clarent.ivyidea.config.ui.orderedfilelist.OrderedFileList;
 import org.clarent.ivyidea.logging.IvyLogLevel;
+import org.clarent.ivyidea.util.StringUtils;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.clarent.ivyidea.config.model.ArtifactTypeSettings.DependencyCategory.*;
 
@@ -48,8 +52,6 @@ public class IvyIdeaProjectSettingsPanel {
     private JRadioButton useYourOwnIvySettingsRadioButton;
     private JPanel pnlPropertiesFiles;
     private JComboBox<IvyLogLevel> ivyLogLevelComboBox;
-    private JCheckBox includeModuleNameCheckBox;
-    private JCheckBox includeConfigurationNameCheckBox;
     private JPanel pnlIvyLogging;
     private JPanel pnlLibraryNaming;
     private JTextField txtClassesArtifactTypes;
@@ -62,6 +64,9 @@ public class IvyIdeaProjectSettingsPanel {
     private JCheckBox autoAttachJavadocs;
     private JCheckBox detectDependenciesOnOtherModules;
     private JCheckBox detectDependenciesOnOtherModulesOfSameVersion;
+    private JTextField txtDependencyScopeRuntime;
+    private JTextField txtDependencyScopeProvided;
+    private JTextField txtDependencyScopeTest;
     private JPanel pnlIvyFiles;
     private JPanel pnlArtefactTypes;
     private IvyIdeaProjectSettings internalState;
@@ -72,14 +77,18 @@ public class IvyIdeaProjectSettingsPanel {
         this.project = project;
         this.internalState = state;
 
-        txtIvySettingsFile.addBrowseFolderListener("Select Ivy Settings File", null, project, new FileChooserDescriptor(true, false, false, false, false, false));
+        txtIvySettingsFile.addBrowseFolderListener("Select Ivy Settings File",
+                null,
+                project,
+                new FileChooserDescriptor(true, false, false, false, false, false));
 
         wireActivityWatchers();
         wireIvySettingsRadioButtons();
     }
 
     private void wireIvySettingsRadioButtons() {
-        useYourOwnIvySettingsRadioButton.addChangeListener(e -> txtIvySettingsFile.setEnabled(useYourOwnIvySettingsRadioButton.isSelected()));
+        useYourOwnIvySettingsRadioButton.addChangeListener(e -> txtIvySettingsFile.setEnabled(
+                useYourOwnIvySettingsRadioButton.isSelected()));
     }
 
     private void wireActivityWatchers() {
@@ -121,13 +130,20 @@ public class IvyIdeaProjectSettingsPanel {
         final PropertiesSettings propertiesSettings = new PropertiesSettings();
         propertiesSettings.setPropertyFiles(getPropertiesFiles());
         internalState.setPropertiesSettings(propertiesSettings);
-        internalState.setLibraryNameIncludesModule(includeModuleNameCheckBox.isSelected());
-        internalState.setLibraryNameIncludesConfiguration(includeConfigurationNameCheckBox.isSelected());
         final Object selectedLogLevel = ivyLogLevelComboBox.getSelectedItem();
         internalState.setIvyLogLevelThreshold(selectedLogLevel == null ? IvyLogLevel.None.name() : selectedLogLevel.toString());
         internalState.getArtifactTypeSettings().setTypesForCategory(Classes, txtClassesArtifactTypes.getText());
         internalState.getArtifactTypeSettings().setTypesForCategory(Sources, txtSourcesArtifactTypes.getText());
         internalState.getArtifactTypeSettings().setTypesForCategory(Javadoc, txtJavadocArtifactTypes.getText());
+
+        Map<String, DependencyScope> dependencyScopes = new HashMap<>();
+        String scopeRuntimeText = txtDependencyScopeRuntime.getText();
+        String scopeProvidedText = txtDependencyScopeProvided.getText();
+        String scopeTestText = txtDependencyScopeTest.getText();
+        addDependencyScopeConfigurations(scopeRuntimeText, DependencyScope.RUNTIME, dependencyScopes);
+        addDependencyScopeConfigurations(scopeProvidedText, DependencyScope.PROVIDED, dependencyScopes);
+        addDependencyScopeConfigurations(scopeTestText, DependencyScope.TEST, dependencyScopes);
+        internalState.setDependencyScopes(dependencyScopes);
     }
 
     public void reset() {
@@ -146,15 +162,52 @@ public class IvyIdeaProjectSettingsPanel {
         detectDependenciesOnOtherModules.setSelected(config.isDetectDependenciesOnOtherModules());
         detectDependenciesOnOtherModulesOfSameVersion.setSelected(config.isDetectDependenciesOnOtherModulesOfSameVersion());
         setPropertiesFiles(config.getPropertiesSettings().getPropertyFiles());
-        includeModuleNameCheckBox.setSelected(config.isLibraryNameIncludesModule());
-        includeConfigurationNameCheckBox.setSelected(config.isLibraryNameIncludesConfiguration());
         ivyLogLevelComboBox.setSelectedItem(IvyLogLevel.fromName(config.getIvyLogLevelThreshold()));
         txtSourcesArtifactTypes.setText(config.getArtifactTypeSettings().getTypesStringForCategory(Sources));
         txtClassesArtifactTypes.setText(config.getArtifactTypeSettings().getTypesStringForCategory(Classes));
         txtJavadocArtifactTypes.setText(config.getArtifactTypeSettings().getTypesStringForCategory(Javadoc));
+
+        StringBuilder textScopeRuntime = new StringBuilder();
+        StringBuilder textScopeProvided = new StringBuilder();
+        StringBuilder textScopeTest = new StringBuilder();
+        for (Map.Entry<String, DependencyScope> entry : internalState.getDependencyScopes().entrySet()) {
+            String configurationName = entry.getKey();
+            DependencyScope dependencyScope = entry.getValue();
+            StringBuilder currentBuilder;
+            switch (dependencyScope) {
+                case RUNTIME:
+                    currentBuilder = textScopeRuntime;
+                    break;
+                case PROVIDED:
+                    currentBuilder = textScopeProvided;
+                    break;
+                case TEST:
+                    currentBuilder = textScopeTest;
+                    break;
+                default:
+                    continue;
+            }
+            currentBuilder.append(configurationName).append(", ");
+        }
+        updateDependencyScopeTextField(textScopeRuntime, txtDependencyScopeRuntime);
+        updateDependencyScopeTextField(textScopeProvided, txtDependencyScopeProvided);
+        updateDependencyScopeTextField(textScopeTest, txtDependencyScopeTest);
     }
 
-    public void disposeUIResources() {
+    private void addDependencyScopeConfigurations(String scopeConfigText, DependencyScope dependencyScope, Map<String, DependencyScope> dependencyScopes) {
+        if (!StringUtils.isBlank(scopeConfigText)) {
+            String[] configurations = scopeConfigText.split("\\s*,\\s*");
+            for (String configuration : configurations) {
+                dependencyScopes.put(configuration, dependencyScope);
+            }
+        }
+    }
+
+    private void updateDependencyScopeTextField(StringBuilder textScopeBuilder, JTextField txtDependencyScope) {
+        if (textScopeBuilder.length() > 0) {
+            textScopeBuilder.setLength(textScopeBuilder.length() - 2);
+        }
+        txtDependencyScope.setText(textScopeBuilder.toString());
     }
 
     private void createUIComponents() {

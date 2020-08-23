@@ -31,8 +31,8 @@ public class ConfigurationSelectionTableModel extends AbstractTableModel {
     private static final int COLUMN_NAME = 1;
     private static final int COLUMN_DESCRIPTION = 2;
 
-    private List<Configuration> data;
-    private Set<Integer> selectedIndexes;
+    private final List<Configuration> data;
+    private final Set<Integer> selectedIndexes;
     private boolean editable = true;
 
     public ConfigurationSelectionTableModel() {
@@ -40,13 +40,8 @@ public class ConfigurationSelectionTableModel extends AbstractTableModel {
         this.selectedIndexes = Collections.emptySet();
     }
 
-    public ConfigurationSelectionTableModel(Collection<Configuration> data) {
-        this.data = new ArrayList<Configuration>(data);
-        this.selectedIndexes = new HashSet<Integer>();
-    }
-
     public ConfigurationSelectionTableModel(Collection<Configuration> data, Collection<String> selectedConfigNames) {
-        this.data = new ArrayList<Configuration>(data);
+        this.data = new ArrayList<>(data);
         this.selectedIndexes = buildSelectedIndexes(this.data, selectedConfigNames);
     }
 
@@ -55,7 +50,7 @@ public class ConfigurationSelectionTableModel extends AbstractTableModel {
     }
 
     public Set<Configuration> getSelectedConfigurations() {
-        Set<Configuration> result = new HashSet<Configuration>();
+        Set<Configuration> result = new HashSet<>();
         for (Integer selectedIndex : selectedIndexes) {
             result.add(getConfigurationAt(selectedIndex));
         }
@@ -66,18 +61,22 @@ public class ConfigurationSelectionTableModel extends AbstractTableModel {
         return data.get(rowIndex);
     }
 
+    @Override
     public int getRowCount() {
         return data.size();
     }
 
+    @Override
     public int getColumnCount() {
         return 3;
     }
 
+    @Override
     public boolean isCellEditable(int rowIndex, int columnIndex) {
-        return editable && columnIndex == 0;
+        return editable && (columnIndex == 0 || columnIndex == 3);
     }
 
+    @Override
     public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
         if (columnIndex == COLUMN_SELECTION && aValue instanceof Boolean) {
             boolean checked = (Boolean) aValue;
@@ -97,6 +96,7 @@ public class ConfigurationSelectionTableModel extends AbstractTableModel {
         selectedIndexes.add(rowIndex);
     }
 
+    @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
         final Configuration configuration = getConfigurationAt(rowIndex);
         if (columnIndex == COLUMN_SELECTION) {
@@ -116,7 +116,7 @@ public class ConfigurationSelectionTableModel extends AbstractTableModel {
     }
 
     private static Set<Integer> buildSelectedIndexes(@NotNull List<Configuration> configurations, @NotNull Collection<String> selectedConfigNames) {
-        final HashSet<Integer> result = new HashSet<Integer>();
+        final Set<Integer> result = new HashSet<>();
         for (Configuration configuration : configurations) {
             if (selectedConfigNames.contains(configuration.getName())) {
                 result.add(configurations.indexOf(configuration));

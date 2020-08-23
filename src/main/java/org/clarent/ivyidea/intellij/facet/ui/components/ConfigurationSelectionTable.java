@@ -80,8 +80,14 @@ public class ConfigurationSelectionTable extends JBTable {
 
         // Render checkbox disabled if table is disabled
         getColumnModel().getColumn(0).setCellRenderer(new BooleanTableCellRenderer() {
+            @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                final Component rendererComponent = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                final Component rendererComponent = super.getTableCellRendererComponent(table,
+                        value,
+                        isSelected,
+                        hasFocus,
+                        row,
+                        column);
                 rendererComponent.setEnabled(editable);
                 return rendererComponent;
             }
@@ -94,9 +100,15 @@ public class ConfigurationSelectionTable extends JBTable {
             private Font regularFont;
             private Font strikethroughFont;
 
+            @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 final ConfigurationSelectionTableModel tableModel = (ConfigurationSelectionTableModel) table.getModel();
-                final Component rendererComponent = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                final Component rendererComponent = super.getTableCellRendererComponent(table,
+                        value,
+                        isSelected,
+                        hasFocus,
+                        row,
+                        column);
                 if (regularFont == null) {
                     regularFont = rendererComponent.getFont();
                 }
@@ -107,7 +119,7 @@ public class ConfigurationSelectionTable extends JBTable {
                         attribs.put(TextAttribute.STRIKETHROUGH, Boolean.TRUE);
                         strikethroughFont = regularFont.deriveFont(attribs);
                     }
-                    setToolTipText("Depracated: " + configuration.getDeprecated());
+                    setToolTipText("Deprecated: " + configuration.getDeprecated());
                     rendererComponent.setFont(strikethroughFont);
                 } else {
                     setToolTipText(null);
@@ -120,8 +132,14 @@ public class ConfigurationSelectionTable extends JBTable {
 
         // Render description disabled if table is disabled
         getColumnModel().getColumn(2).setCellRenderer(new DefaultTableCellRenderer() {
+            @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                final Component rendererComponent = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                final Component rendererComponent = super.getTableCellRendererComponent(table,
+                        value,
+                        isSelected,
+                        hasFocus,
+                        row,
+                        column);
                 rendererComponent.setEnabled(editable);
                 return rendererComponent;
             }

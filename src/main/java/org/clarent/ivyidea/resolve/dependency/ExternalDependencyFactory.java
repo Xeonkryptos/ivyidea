@@ -17,6 +17,7 @@
 package org.clarent.ivyidea.resolve.dependency;
 
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.roots.DependencyScope;
 import org.apache.ivy.core.module.descriptor.Artifact;
 import org.clarent.ivyidea.config.IvyIdeaConfigHelper;
 import org.clarent.ivyidea.config.model.ArtifactTypeSettings;
@@ -30,24 +31,23 @@ import java.io.File;
  */
 public class ExternalDependencyFactory {
 
-    private static ExternalDependencyFactory instance = new ExternalDependencyFactory();
+    private static final ExternalDependencyFactory INSTANCE = new ExternalDependencyFactory();
 
     public static ExternalDependencyFactory getInstance() {
-        return instance;
+        return INSTANCE;
     }
 
     @Nullable
-    public ExternalDependency createExternalDependency(@NotNull Artifact artifact, @Nullable File file,
-                                                       @NotNull Project project, @NotNull final String configurationName) {
+    public ExternalDependency createExternalDependency(@NotNull Artifact artifact, @Nullable File file, @NotNull Project project, @Nullable DependencyScope dependencyScope) {
         final ArtifactTypeSettings.DependencyCategory category = determineCategory(project, artifact);
         if (category != null) {
             switch (category) {
                 case Classes:
-                    return new ExternalJarDependency(artifact, file, configurationName);
+                    return new ExternalJarDependency(artifact, file, dependencyScope);
                 case Sources:
-                    return new ExternalSourceDependency(artifact, file, configurationName);
+                    return new ExternalSourceDependency(artifact, file);
                 case Javadoc:
-                    return new ExternalJavaDocDependency(artifact, file, configurationName);
+                    return new ExternalJavaDocDependency(artifact, file);
             }
         }
         return null;

@@ -44,6 +44,8 @@ public class IvyFileChangeListener implements BulkFileListener {
 
     @Override
     public void before(@NotNull List<? extends VFileEvent> events) {
+        updatableModules.clear();
+
         Project[] openProjects = projectManager.getOpenProjects();
         ProjectFileIndex[] fileIndices = new ProjectFileIndex[openProjects.length];
         for (int i = 0; i < openProjects.length; i++) {
@@ -52,6 +54,7 @@ public class IvyFileChangeListener implements BulkFileListener {
             fileIndices[i] = projectRootManager.getFileIndex();
         }
         events.stream()
+                .filter(event -> event.isValid() && event.isFromSave())
                 .filter(event -> event instanceof VFileContentChangeEvent)
                 .map(event -> ((VFileContentChangeEvent) event).getFile())
                 .map(virtualFile -> {

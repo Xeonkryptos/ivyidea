@@ -25,6 +25,7 @@ import org.clarent.ivyidea.resolve.dependency.ExternalDependency;
 import org.clarent.ivyidea.resolve.dependency.InternalDependency;
 import org.clarent.ivyidea.resolve.problem.ResolveProblem;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -36,12 +37,12 @@ import java.util.List;
  */
 public class IntellijDependencyResolver {
 
-    private Module module;
-    private List<ExternalDependency> externalDependencies = Collections.emptyList();
-    private List<InternalDependency> internalDependencies = Collections.emptyList();
-    private List<ResolveProblem> problems = Collections.emptyList();
+    private final IvyManager ivyManager;
 
-    private IvyManager ivyManager;
+    private Module module;
+    private Collection<ExternalDependency> externalDependencies = Collections.emptyList();
+    private Collection<InternalDependency> internalDependencies = Collections.emptyList();
+    private List<ResolveProblem> problems = Collections.emptyList();
 
     public IntellijDependencyResolver(IvyManager ivyManager) {
         this.ivyManager = ivyManager;
@@ -55,18 +56,18 @@ public class IntellijDependencyResolver {
         return problems;
     }
 
-    public List<ExternalDependency> getExternalDependencies() {
+    public Collection<ExternalDependency> getExternalDependencies() {
         return externalDependencies;
     }
 
-    public List<InternalDependency> getInternalDependencies() {
+    public Collection<InternalDependency> getInternalDependencies() {
         return internalDependencies;
     }
 
     public void resolve(final Module module) throws IvySettingsNotFoundException, IvyFileReadException, IvySettingsFileReadException {
         this.module = module;
-        final DependencyResolver dependencyResolver = new DependencyResolver();
-        dependencyResolver.resolve(module, ivyManager);
+        final DependencyResolver dependencyResolver = new DependencyResolver(module, ivyManager);
+        dependencyResolver.resolve();
         externalDependencies = dependencyResolver.getResolvedExternalDependencies();
         internalDependencies = dependencyResolver.getResolvedInternalDependencies();
         problems = dependencyResolver.getResolveProblems();

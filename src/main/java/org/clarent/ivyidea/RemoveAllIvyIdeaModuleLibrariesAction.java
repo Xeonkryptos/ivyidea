@@ -29,7 +29,6 @@ import com.intellij.openapi.roots.ModifiableRootModel;
 import com.intellij.openapi.roots.ModuleRootManager;
 import com.intellij.openapi.roots.libraries.Library;
 import com.intellij.openapi.roots.libraries.LibraryTable;
-import org.clarent.ivyidea.config.IvyIdeaConfigHelper;
 import org.clarent.ivyidea.intellij.IntellijUtils;
 import org.clarent.ivyidea.intellij.task.IvyIdeaBackgroundTask;
 import org.clarent.ivyidea.ivy.IvyManager;
@@ -59,7 +58,8 @@ public class RemoveAllIvyIdeaModuleLibrariesAction extends AnAction {
                         final Library[] libraries = moduleLibraryTable.getLibraries();
                         boolean found = false;
                         for (final Library library : libraries) {
-                            if (IvyIdeaConfigHelper.isCreatedLibraryName(library.getName())) {
+                            String libraryName = library.getName();
+                            if (libraryName != null && libraryName.startsWith("Ivy: ")) {
                                 found = true;
                                 moduleLibraryTable.removeLibrary(library);
                             }

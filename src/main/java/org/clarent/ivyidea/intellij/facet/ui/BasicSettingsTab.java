@@ -22,9 +22,9 @@ import com.intellij.facet.ui.FacetEditorTab;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.options.ConfigurationException;
+import com.intellij.openapi.roots.DependencyScope;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.ui.DocumentAdapter;
-import com.intellij.ui.UserActivityListener;
 import com.intellij.ui.UserActivityWatcher;
 import org.apache.ivy.Ivy;
 import org.apache.ivy.core.module.descriptor.Configuration;
@@ -33,6 +33,8 @@ import org.clarent.ivyidea.config.IvyIdeaConfigHelper;
 import org.clarent.ivyidea.exception.IvySettingsFileReadException;
 import org.clarent.ivyidea.exception.IvySettingsNotFoundException;
 import org.clarent.ivyidea.intellij.facet.config.IvyIdeaFacetConfiguration;
+import org.clarent.ivyidea.intellij.facet.ui.components.ConfigurationScopeTable;
+import org.clarent.ivyidea.intellij.facet.ui.components.ConfigurationScopeTableModel;
 import org.clarent.ivyidea.intellij.facet.ui.components.ConfigurationSelectionTable;
 import org.clarent.ivyidea.intellij.facet.ui.components.ConfigurationSelectionTableModel;
 import org.clarent.ivyidea.ivy.IvyUtil;
@@ -42,8 +44,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 import javax.swing.event.DocumentEvent;
 import java.io.File;
 import java.text.ParseException;
@@ -64,6 +64,7 @@ public class BasicSettingsTab extends FacetEditorTab {
     private TextFieldWithBrowseButton txtIvySettingsFile;
     private JCheckBox chkOnlyResolveSpecificConfigs;
     private ConfigurationSelectionTable tblConfigurationSelection;
+    private ConfigurationScopeTable tblConfigurationScope;
     private JLabel lblIvyFileMessage;
     private JRadioButton rbnUseDefaultIvySettings;
     private JRadioButton rbnUseCustomIvySettings;
@@ -72,7 +73,8 @@ public class BasicSettingsTab extends FacetEditorTab {
     private boolean modified;
     private boolean foundConfigsBefore = false;
 
-    private Set<Configuration> selectedConfigurations = new HashSet<Configuration>();
+    private Set<Configuration> selectedConfigurations = new HashSet<>();
+    private Map<String, DependencyScope> dependencyScopes = new HashMap<>();
 
     public BasicSettingsTab(@NotNull FacetEditorContext editorContext, @NotNull PropertiesSettingsTab propertiesSettingsTab) {
         this.editorContext = editorContext;
@@ -80,11 +82,7 @@ public class BasicSettingsTab extends FacetEditorTab {
         this.propertiesSettingsTab.reset();
 
         UserActivityWatcher watcher = new UserActivityWatcher();
-        watcher.addUserActivityListener(new UserActivityListener() {
-            public void stateChanged() {
-                modified = true;
-            }
-        });
+        watcher.addUserActivityListener(() -> modified = true);
         watcher.register(pnlRoot);
 
         txtIvyFile.addBrowseFolderListener("Select ivy file", "", editorContext.getProject(), new FileChooserDescriptor(true, false, false, false, false, false));
@@ -95,23 +93,11 @@ public class BasicSettingsTab extends FacetEditorTab {
                 reloadIvyFile();
             }
         });
-        chkOverrideProjectIvySettings.addChangeListener(new ChangeListener() {
-            public void stateChanged(ChangeEvent e) {
-                updateIvySettingsUIState();
-            }
-        });
+        chkOverrideProjectIvySettings.addChangeListener(e -> updateIvySettingsUIState());
 
-        chkOnlyResolveSpecificConfigs.addChangeListener(new ChangeListener() {
-            public void stateChanged(ChangeEvent e) {
-                updateConfigurationsTable();
-            }
-        });
+        chkOnlyResolveSpecificConfigs.addChangeListener(e -> updateConfigurationsTable());
                
-        rbnUseCustomIvySettings.addChangeListener(new ChangeListener() {
-            public void stateChanged(ChangeEvent e) {
-                updateIvySettingsFileTextfield();
-            }
-        });
+        rbnUseCustomIvySettings.addChangeListener(e -> updateIvySettingsFileTextfield());
     }
 
     private void updateUI() {
@@ -148,6 +134,7 @@ public class BasicSettingsTab extends FacetEditorTab {
             if (allConfigurations != null) {
                 LOGGER.info("Detected configs in file " + txtIvyFile.getText() + ": " + allConfigurations.toString());
                 tblConfigurationSelection.setModel(new ConfigurationSelectionTableModel(allConfigurations, getNames(selectedConfigurations)));
+                tblConfigurationScope.setModel(new ConfigurationScopeTableModel(allConfigurations, dependencyScopes));
                 lblIvyFileMessage.setText("");
                 foundConfigsBefore = true;
             } else {
@@ -159,8 +146,10 @@ public class BasicSettingsTab extends FacetEditorTab {
                 }
                 if (foundConfigsBefore) {
                     selectedConfigurations = tblConfigurationSelection.getSelectedConfigurations();
+                    dependencyScopes = tblConfigurationScope.getDependencyScopes();
                 }
                 tblConfigurationSelection.setModel(new ConfigurationSelectionTableModel());
+                tblConfigurationScope.setModel(new ConfigurationScopeTableModel());
                 foundConfigsBefore = false;
             }
         } catch (ParseException e1) {
@@ -197,7 +186,7 @@ public class BasicSettingsTab extends FacetEditorTab {
     }
 
     private Properties getPropertiesForCurrentSettingsInUI() throws IvySettingsNotFoundException, IvySettingsFileReadException {
-        final List<String> propertiesFiles = new ArrayList<String>(propertiesSettingsTab.getFileNames());
+        final List<String> propertiesFiles = new ArrayList<>(propertiesSettingsTab.getFileNames());
         // TODO: only include the project properties files if this option is chosen on the screen.
         //          for now this is not configurable yet - so it always is true
         boolean includeProjectProperties = true;
@@ -209,82 +198,87 @@ public class BasicSettingsTab extends FacetEditorTab {
     }
 
     @Nls
+    @Override
     public String getDisplayName() {
         return "General";
     }
 
+    @NotNull
+    @Override
     public JComponent createComponent() {
         return pnlRoot;
     }
 
+    @Override
     public boolean isModified() {
         return modified;
     }
 
+    @Override
     public void apply() throws ConfigurationException {
-        final Facet facet = editorContext.getFacet();
-        if (facet != null) {
-            IvyIdeaFacetConfiguration configuration = (IvyIdeaFacetConfiguration) facet.getConfiguration();
-            configuration.setUseProjectSettings(!chkOverrideProjectIvySettings.isSelected());
-            configuration.setUseCustomIvySettings(rbnUseCustomIvySettings.isSelected());
-            configuration.setIvySettingsFile(txtIvySettingsFile.getText());
-            configuration.setOnlyResolveSelectedConfigs(chkOnlyResolveSpecificConfigs.isSelected());
-            configuration.setConfigsToResolve(getNames(tblConfigurationSelection.getSelectedConfigurations()));
-            configuration.setIvyFile(txtIvyFile.getText());
-        }
+        final Facet<?> facet = editorContext.getFacet();
+        IvyIdeaFacetConfiguration configuration = (IvyIdeaFacetConfiguration) facet.getConfiguration();
+        configuration.setUseProjectSettings(!chkOverrideProjectIvySettings.isSelected());
+        configuration.setUseCustomIvySettings(rbnUseCustomIvySettings.isSelected());
+        configuration.setIvySettingsFile(txtIvySettingsFile.getText());
+        configuration.setOnlyResolveSelectedConfigs(chkOnlyResolveSpecificConfigs.isSelected());
+        configuration.setConfigsToResolve(getNames(tblConfigurationSelection.getSelectedConfigurations()));
+        configuration.setDependencyScopes(tblConfigurationScope.getDependencyScopes());
+        configuration.setIvyFile(txtIvyFile.getText());
     }
 
     @NotNull
     private static Set<String> getNames(@NotNull Set<Configuration> selectedConfigurations) {
-        Set<String> result = new TreeSet<String>();
+        Set<String> result = new TreeSet<>();
         for (Configuration selectedConfiguration : selectedConfigurations) {
             result.add(selectedConfiguration.getName());
         }
         return result;
     }
 
+    @Override
     public void reset() {
-        final Facet facet = editorContext.getFacet();
-        if (facet != null) {
-            IvyIdeaFacetConfiguration configuration = (IvyIdeaFacetConfiguration) facet.getConfiguration();
-            txtIvyFile.setText(configuration.getIvyFile());
-            chkOverrideProjectIvySettings.setSelected(!configuration.isUseProjectSettings());
-            txtIvySettingsFile.setText(configuration.getIvySettingsFile());
-            chkOnlyResolveSpecificConfigs.setSelected(configuration.isOnlyResolveSelectedConfigs());
-            rbnUseCustomIvySettings.setSelected(configuration.isUseCustomIvySettings());
-            rbnUseDefaultIvySettings.setSelected(!configuration.isUseCustomIvySettings());
-            Set<Configuration> allConfigurations;
-            try {
-                allConfigurations = loadConfigurations();
-            } catch (ParseException e) {
-                allConfigurations = null;
-            } catch ( IvySettingsNotFoundException e ) {
-                allConfigurations = null;
-            } catch ( IvySettingsFileReadException e ) {
-                allConfigurations = null;
-            }
-            if (StringUtils.isNotBlank(configuration.getIvyFile())) {
-                if (allConfigurations != null) {
-                    tblConfigurationSelection.setModel(new ConfigurationSelectionTableModel(allConfigurations, configuration.getConfigsToResolve()));
-                } else {
-                    tblConfigurationSelection.setModel(new ConfigurationSelectionTableModel());
-                }
-                selectedConfigurations = tblConfigurationSelection.getSelectedConfigurations();
-                updateConfigurationsTable();
+        final Facet<?> facet = editorContext.getFacet();
+        IvyIdeaFacetConfiguration configuration = (IvyIdeaFacetConfiguration) facet.getConfiguration();
+        txtIvyFile.setText(configuration.getIvyFile());
+        chkOverrideProjectIvySettings.setSelected(!configuration.isUseProjectSettings());
+        txtIvySettingsFile.setText(configuration.getIvySettingsFile());
+        chkOnlyResolveSpecificConfigs.setSelected(configuration.isOnlyResolveSelectedConfigs());
+        rbnUseCustomIvySettings.setSelected(configuration.isUseCustomIvySettings());
+        rbnUseDefaultIvySettings.setSelected(!configuration.isUseCustomIvySettings());
+        Set<Configuration> allConfigurations;
+        try {
+            allConfigurations = loadConfigurations();
+        } catch (ParseException | IvySettingsNotFoundException | IvySettingsFileReadException e) {
+            allConfigurations = null;
+        }
+        if (StringUtils.isNotBlank(configuration.getIvyFile())) {
+            if (allConfigurations != null) {
+                tblConfigurationSelection.setModel(new ConfigurationSelectionTableModel(allConfigurations, configuration.getConfigsToResolve()));
+                tblConfigurationScope.setModel(new ConfigurationScopeTableModel(allConfigurations, configuration.getDependencyScopes()));
             } else {
                 tblConfigurationSelection.setModel(new ConfigurationSelectionTableModel());
-                selectedConfigurations = new HashSet<Configuration>();
-                tblConfigurationSelection.setEditable(false);
+                tblConfigurationScope.setModel(new ConfigurationScopeTableModel());
             }
-            updateUI();
+            selectedConfigurations = tblConfigurationSelection.getSelectedConfigurations();
+            dependencyScopes = tblConfigurationScope.getDependencyScopes();
+            updateConfigurationsTable();
+        } else {
+            tblConfigurationSelection.setModel(new ConfigurationSelectionTableModel());
+            tblConfigurationScope.setModel(new ConfigurationScopeTableModel());
+            selectedConfigurations = new HashSet<>();
+            dependencyScopes = new HashMap<>();
+            tblConfigurationSelection.setEditable(false);
+            tblConfigurationScope.setEditable(false);
         }
+        updateUI();
     }
 
+    @Override
     public void disposeUIResources() {
     }
 
     private void createUIComponents() {
     }
-
 
 }

@@ -16,6 +16,7 @@
 
 package org.clarent.ivyidea.resolve.dependency;
 
+import com.intellij.openapi.roots.DependencyScope;
 import com.intellij.openapi.roots.OrderRootType;
 import org.apache.ivy.core.module.descriptor.Artifact;
 
@@ -27,8 +28,11 @@ import java.io.File;
 
 public class ExternalJarDependency extends ExternalDependency {
 
-    public ExternalJarDependency(Artifact artifact, File externalArtifact, final String configurationName) {
-        super(artifact, externalArtifact, configurationName);
+    private final DependencyScope dependencyScope;
+
+    public ExternalJarDependency(Artifact artifact, File externalArtifact, DependencyScope dependencyScope) {
+        super(artifact, externalArtifact);
+        this.dependencyScope = dependencyScope;
     }
 
     protected String getTypeName() {
@@ -39,4 +43,8 @@ public class ExternalJarDependency extends ExternalDependency {
         return OrderRootType.CLASSES;
     }
 
+    @Override
+    public DependencyScope getDependencyScope() {
+        return dependencyScope;
+    }
 }

@@ -59,6 +59,12 @@ patchPluginXml {
                 it is handled as external dependency.
                 </li>
                 <li>Optimized final resolving steps to be not executed on UI thread to avoid UI freezes as much as possible<li>
+                <li>
+                Removed IvyIDEA library container and replaced it with independent library modules. Its the base for
+                dependency scope mapping that is now available. Based on the mapping between configuration and dependency
+                scope you'll won't have any trouble with test dependencies in your compile or runtime scope (i.e. when
+                you're executing a program within your IDE).
+                </li>
             </ul>
             <strong>1.0.16</strong>
             <ul>

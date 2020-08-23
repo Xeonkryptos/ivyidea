@@ -16,14 +16,17 @@
 
 package org.clarent.ivyidea.resolve.dependency;
 
+import com.intellij.openapi.roots.DependencyScope;
 import com.intellij.openapi.roots.OrderRootType;
 import com.intellij.openapi.util.io.FileUtil;
 import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.util.PathUtil;
 import org.apache.ivy.core.module.descriptor.Artifact;
+import org.apache.ivy.core.module.id.ModuleRevisionId;
 import org.clarent.ivyidea.intellij.model.IntellijModuleWrapper;
 
 import java.io.File;
+import java.util.Objects;
 import java.util.logging.Logger;
 
 /**
@@ -36,13 +39,11 @@ public abstract class ExternalDependency implements ResolvedDependency {
     private static final Logger LOGGER = Logger.getLogger(ExternalDependency.class.getName());
 
     private final Artifact artifact;
-    private final String configurationName;
     private final File localFile;
 
-    public ExternalDependency(Artifact artifact, File localFile, final String configurationName) {
+    public ExternalDependency(Artifact artifact, File localFile) {
         this.artifact = artifact;
         this.localFile = localFile;
-        this.configurationName = configurationName;
     }
 
     public File getLocalFile() {
@@ -53,10 +54,11 @@ public abstract class ExternalDependency implements ResolvedDependency {
         return VfsUtil.getUrlForLibraryRoot(getLocalFile());
     }
 
-    public String getConfigurationName() {
-        return configurationName;
+    protected DependencyScope getDependencyScope() {
+        return null;
     }
 
+    @Override
     public void addTo(IntellijModuleWrapper intellijModuleWrapper) {
         if (localFile == null) {
             LOGGER.warning("Not registering external " + getTypeName() + " dependency for module " + artifact.getModuleRevisionId() +  " as the file does not seem to exist.");
@@ -69,10 +71,11 @@ public abstract class ExternalDependency implements ResolvedDependency {
         }
         if (intellijModuleWrapper.alreadyHasDependencyOnLibrary(this)) {
             LOGGER.info("Not re-registering external " + getTypeName() + " file dependency " + artifactPath + " as it is already present.");
+            intellijModuleWrapper.updateExternalDependencyScope(this, getDependencyScope());
             return;
         }
         LOGGER.info("Registering external " + getTypeName() + " file dependency: " + artifactPath);
-        intellijModuleWrapper.addExternalDependency(this);
+        intellijModuleWrapper.addExternalDependency(this, getDependencyScope());
     }
 
     public boolean isMissing() {
@@ -88,7 +91,25 @@ public abstract class ExternalDependency implements ResolvedDependency {
         return FileUtil.filesEqual(localFile, new File(path));
     }
 
+    public final String getArtifactName() {
+        ModuleRevisionId moduleRevisionId = artifact.getModuleRevisionId();
+        return moduleRevisionId.getOrganisation() + ":" + moduleRevisionId.getName() + ":" + moduleRevisionId.getRevision();
+    }
+
     public abstract OrderRootType getType();
 
     protected abstract String getTypeName();
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ExternalDependency)) return false;
+        ExternalDependency that = (ExternalDependency) o;
+        return artifact.equals(that.artifact);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(artifact);
+    }
 }

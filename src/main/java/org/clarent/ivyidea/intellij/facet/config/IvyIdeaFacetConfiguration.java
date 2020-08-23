@@ -22,6 +22,7 @@ import com.intellij.facet.ui.FacetEditorTab;
 import com.intellij.facet.ui.FacetValidatorsManager;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.module.Module;
+import com.intellij.openapi.roots.DependencyScope;
 import org.clarent.ivyidea.intellij.facet.IvyIdeaFacet;
 import org.clarent.ivyidea.intellij.facet.ui.BasicSettingsTab;
 import org.clarent.ivyidea.intellij.facet.ui.PropertiesSettingsTab;
@@ -29,6 +30,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
@@ -116,6 +118,14 @@ public class IvyIdeaFacetConfiguration implements PersistentStateComponent<IvyId
         configuration.setFacetPropertiesSettings(facetPropertiesSettings);
     }
 
+    public Map<String, DependencyScope> getDependencyScopes() {
+        return configuration.getDependencyScopes();
+    }
+
+    public void setDependencyScopes(Map<String, DependencyScope> dependencyScopes) {
+        configuration.setDependencyScopes(dependencyScopes);
+    }
+
     @Nullable
     @Override
     public FacetConfig getState() {
@@ -136,6 +146,7 @@ public class IvyIdeaFacetConfiguration implements PersistentStateComponent<IvyId
         private String ivySettingsFile = "";
         private boolean onlyResolveSelectedConfigs = false;
         private Set<String> configsToResolve = Collections.emptySet();
+        private Map<String, DependencyScope> dependencyScopes = Collections.emptyMap();
         private FacetPropertiesSettings facetPropertiesSettings = new FacetPropertiesSettings();
 
         public String getIvyFile() {
@@ -194,6 +205,13 @@ public class IvyIdeaFacetConfiguration implements PersistentStateComponent<IvyId
             this.facetPropertiesSettings = facetPropertiesSettings;
         }
 
+        public Map<String, DependencyScope> getDependencyScopes() {
+            return dependencyScopes;
+        }
+
+        public void setDependencyScopes(Map<String, DependencyScope> dependencyScopes) {
+            this.dependencyScopes = dependencyScopes;
+        }
     }
 
 }

@@ -19,14 +19,10 @@ package org.clarent.ivyidea.intellij.model;
 import com.google.common.collect.Streams;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.module.Module;
-import com.intellij.openapi.roots.ModifiableRootModel;
-import com.intellij.openapi.roots.ModuleOrderEntry;
-import com.intellij.openapi.roots.ModuleRootManager;
-import com.intellij.openapi.roots.OrderRootType;
+import com.intellij.openapi.roots.*;
 import com.intellij.openapi.roots.libraries.Library;
 import com.intellij.openapi.roots.libraries.Library.ModifiableModel;
 import com.intellij.openapi.roots.libraries.LibraryTable;
-import org.clarent.ivyidea.config.IvyIdeaConfigHelper;
 import org.clarent.ivyidea.resolve.dependency.ExternalDependency;
 import org.clarent.ivyidea.resolve.dependency.InternalDependency;
 import org.clarent.ivyidea.resolve.dependency.ResolvedDependency;
@@ -37,6 +33,8 @@ public class IntellijModuleWrapper implements AutoCloseable {
 
     private final ModifiableRootModel intellijModule;
     private final LibraryModels libraryModels;
+
+    private List<Runnable> dependencyManipulationActions;
 
     public static IntellijModuleWrapper forModule(Module module) {
         ModifiableRootModel modifiableModel = null;
@@ -57,11 +55,24 @@ public class IntellijModuleWrapper implements AutoCloseable {
     }
 
     public void updateDependencies(Collection<ExternalDependency> resolvedExternalDependencies, Collection<InternalDependency> resolvedInternalDependencies) {
+        dependencyManipulationActions = new ArrayList<>();
+
         Streams.concat(resolvedExternalDependencies.stream(), resolvedInternalDependencies.stream())
                 .forEach(resolvedDependency -> resolvedDependency.addTo(this));
+
         removeDependenciesNotInList(resolvedExternalDependencies, resolvedInternalDependencies);
+
+        dependencyManipulationActions.add(this::close);
+        Runnable[] dependencyManipulationActionsArray = dependencyManipulationActions.toArray(new Runnable[0]);
+
+        ApplicationManager.getApplication().invokeLater(() -> {
+            for (Runnable runnable : dependencyManipulationActionsArray) {
+                ApplicationManager.getApplication().runWriteAction(runnable);
+            }
+        });
     }
 
+    @Override
     public void close() {
         libraryModels.close();
         if (intellijModule.isChanged()) {
@@ -75,17 +86,44 @@ public class IntellijModuleWrapper implements AutoCloseable {
         return intellijModule.getModule().getName();
     }
 
-    public void addModuleDependency(Module module) {
-        ApplicationManager.getApplication().invokeLater(() -> ApplicationManager.getApplication().runWriteAction(() -> {
-            intellijModule.addModuleOrderEntry(module);
-        }));
+    public void addModuleDependency(Module module, DependencyScope dependencyScope) {
+        dependencyManipulationActions.add(() -> {
+            ModuleOrderEntry moduleOrderEntry = intellijModule.addModuleOrderEntry(module);
+            if (dependencyScope != null) {
+                moduleOrderEntry.setScope(dependencyScope);
+            }
+        });
     }
 
-    public void addExternalDependency(ExternalDependency externalDependency) {
-        ApplicationManager.getApplication().invokeLater(() -> ApplicationManager.getApplication().runWriteAction(() -> {
-            ModifiableModel libraryModel = libraryModels.getForExternalDependency(externalDependency);
-            libraryModel.addRoot(externalDependency.getUrlForLibraryRoot(), externalDependency.getType());
-        }));
+    public void updateModuleDependencyScope(Module module, DependencyScope dependencyScope) {
+        dependencyManipulationActions.add(() -> {
+            ModuleOrderEntry moduleOrderEntry = intellijModule.findModuleOrderEntry(module);
+            if (moduleOrderEntry != null && dependencyScope != null) {
+                moduleOrderEntry.setScope(dependencyScope);
+            }
+        });
+    }
+
+    public void addExternalDependency(ExternalDependency externalDependency, DependencyScope dependencyScope) {
+        dependencyManipulationActions.add(() -> {
+            Library library = libraryModels.getForExternalDependency(externalDependency);
+            library.getModifiableModel().addRoot(externalDependency.getUrlForLibraryRoot(), externalDependency.getType());
+            updateExternalDependencyScope(library, dependencyScope);
+        });
+    }
+
+    public void updateExternalDependencyScope(ExternalDependency externalDependency, DependencyScope dependencyScope) {
+        dependencyManipulationActions.add(() -> {
+            Library library = libraryModels.getForExternalDependency(externalDependency);
+            updateExternalDependencyScope(library, dependencyScope);
+        });
+    }
+
+    private void updateExternalDependencyScope(Library library, DependencyScope dependencyScope) {
+        LibraryOrderEntry libraryOrderEntry = intellijModule.findLibraryOrderEntry(library);
+        if (libraryOrderEntry != null && dependencyScope != null) {
+            libraryOrderEntry.setScope(dependencyScope);
+        }
     }
 
     public boolean alreadyHasDependencyOnModule(Module module) {
@@ -99,7 +137,7 @@ public class IntellijModuleWrapper implements AutoCloseable {
     }
 
     public boolean alreadyHasDependencyOnLibrary(ExternalDependency externalDependency) {
-        ModifiableModel libraryModel = libraryModels.getForExternalDependency(externalDependency);
+        ModifiableModel libraryModel = libraryModels.getForExternalDependency(externalDependency).getModifiableModel();
         for (String url : libraryModel.getUrls(externalDependency.getType())) {
             if (externalDependency.isSameDependency(url)) {
                 return true;
@@ -109,31 +147,17 @@ public class IntellijModuleWrapper implements AutoCloseable {
     }
 
     public void removeDependenciesNotInList(Collection<ExternalDependency> externalDependenciesToKeep, Collection<InternalDependency> internalDependenciesToKeep) {
-        OrderRootType[] orderRootTypes = OrderRootType.getAllTypes();
-        List<Runnable> dependencyRemoveAction = new ArrayList<>();
-        for (OrderRootType type : orderRootTypes) {
-            List<String> dependenciesToRemove = getDependenciesToRemove(type, externalDependenciesToKeep);
-            for (String dependencyToRemove : dependenciesToRemove) {
-                dependencyRemoveAction.add(() -> libraryModels.removeDependency(type, dependencyToRemove));
-            }
-        }
-
         // remove resolved libraries that are no longer used
-        Set<String> librariesInUse = new HashSet<>();
-        for (ResolvedDependency dependency : externalDependenciesToKeep) {
-            if (dependency instanceof ExternalDependency) {
-                ExternalDependency externalDependency = (ExternalDependency) dependency;
-                String library = IvyIdeaConfigHelper.getCreatedLibraryName(intellijModule,
-                        externalDependency.getConfigurationName());
-                librariesInUse.add(library);
-            }
+        Set<String> librariesInUse = new HashSet<>(externalDependenciesToKeep.size());
+        for (ExternalDependency externalDependency : externalDependenciesToKeep) {
+            librariesInUse.add(libraryModels.getLibraryName(externalDependency));
         }
 
         final LibraryTable libraryTable = intellijModule.getModuleLibraryTable();
         for (Library library : libraryTable.getLibraries()) {
             final String libraryName = library.getName();
-            if (IvyIdeaConfigHelper.isCreatedLibraryName(libraryName) && !librariesInUse.contains(libraryName)) {
-                dependencyRemoveAction.add(() -> libraryTable.removeLibrary(library));
+            if (!librariesInUse.contains(libraryName)) {
+                dependencyManipulationActions.add(() -> libraryTable.removeLibrary(library));
             }
         }
 
@@ -146,29 +170,9 @@ public class IntellijModuleWrapper implements AutoCloseable {
             if (!internalModulesToKeep.contains(moduleDependency.getName())) {
                 ModuleOrderEntry moduleOrderEntry = intellijModule.findModuleOrderEntry(moduleDependency);
                 if (moduleOrderEntry != null) {
-                    dependencyRemoveAction.add(() -> intellijModule.removeOrderEntry(moduleOrderEntry));
+                    dependencyManipulationActions.add(() -> intellijModule.removeOrderEntry(moduleOrderEntry));
                 }
             }
         }
-
-        Runnable[] dependencyRemoveActionArray = dependencyRemoveAction.toArray(new Runnable[0]);
-        for (Runnable runnable : dependencyRemoveActionArray) {
-            ApplicationManager.getApplication().invokeLater(() -> ApplicationManager.getApplication().runWriteAction(runnable));
-        }
     }
-
-    private List<String> getDependenciesToRemove(OrderRootType type, Collection<ExternalDependency> resolvedExternalDependencies) {
-        final List<String> intellijDependencies = libraryModels.getIntellijDependencyUrlsForType(type);
-        final List<String> dependenciesToRemove = new ArrayList<>(intellijDependencies); // add all dependencies initially
-        for (String intellijDependency : intellijDependencies) {
-            for (ResolvedDependency resolvedDependency : resolvedExternalDependencies) {
-                ExternalDependency externalDependency = (ExternalDependency) resolvedDependency;
-                if (externalDependency.isSameDependency(intellijDependency)) {
-                    dependenciesToRemove.remove(intellijDependency); // remove existing ones
-                }
-            }
-        }
-        return dependenciesToRemove;
-    }
-
 }

@@ -21,39 +21,32 @@ import com.intellij.openapi.roots.OrderRootType;
 import com.intellij.openapi.roots.libraries.Library;
 import com.intellij.openapi.roots.libraries.LibraryTable;
 import com.intellij.openapi.util.Disposer;
-import org.clarent.ivyidea.config.IvyIdeaConfigHelper;
 import org.clarent.ivyidea.resolve.dependency.ExternalDependency;
 
 import java.io.Closeable;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Logger;
-
-import static java.util.Arrays.asList;
-import static org.clarent.ivyidea.util.StringUtils.isBlank;
 
 class LibraryModels implements Closeable {
 
     private static final Logger LOGGER = Logger.getLogger(LibraryModels.class.getName());    
 
-    private final ConcurrentMap<String, Library.ModifiableModel> libraryModels = new ConcurrentHashMap<String, Library.ModifiableModel>();
+    private final Map<String, Library> libraryModels = new ConcurrentHashMap<>();
 
-    private ModifiableRootModel intellijModule;
+    private final ModifiableRootModel intellijModule;
 
     LibraryModels(ModifiableRootModel intellijModule) {
         this.intellijModule = intellijModule;
     }
 
-    public Library.ModifiableModel getForExternalDependency(final ExternalDependency externalDependency) {
-        String resolvedConfiguration = externalDependency.getConfigurationName();
-        return getForConfiguration(isBlank(resolvedConfiguration) ? "default" : resolvedConfiguration);
+    public Library getForExternalDependency(final ExternalDependency externalDependency) {
+        String libraryName = getLibraryName(externalDependency);
+        return libraryModels.computeIfAbsent(libraryName, _libraryName -> getIvyIdeaLibrary(intellijModule, _libraryName));
     }
 
-    private Library.ModifiableModel getForConfiguration(String ivyConfiguration) {
-        final String libraryName = IvyIdeaConfigHelper.getCreatedLibraryName(intellijModule, ivyConfiguration);
-        return libraryModels.computeIfAbsent(libraryName, _libraryName -> getIvyIdeaLibrary(intellijModule, libraryName).getModifiableModel());
+    public String getLibraryName(ExternalDependency externalDependency) {
+        return "Ivy: " + externalDependency.getArtifactName();
     }
 
     private Library getIvyIdeaLibrary(ModifiableRootModel modifiableRootModel, final String libraryName) {
@@ -68,22 +61,15 @@ class LibraryModels implements Closeable {
 
     public void removeDependency(OrderRootType type, String dependencyUrl) {
         LOGGER.info("Removing no longer needed dependency of type " + type + ": " + dependencyUrl);
-        for (Library.ModifiableModel libraryModel : libraryModels.values()) {
-            libraryModel.removeRoot(dependencyUrl, type);
+        for (Library library : libraryModels.values()) {
+            library.getModifiableModel().removeRoot(dependencyUrl, type);
         }
     }
 
-    public List<String> getIntellijDependencyUrlsForType(OrderRootType type) {
-        final List<String> intellijDependencies = new ArrayList<String>();
-        for (final Library.ModifiableModel libraryModel : libraryModels.values()) {
-            final String[] libraryModelUrls = libraryModel.getUrls(type);
-            intellijDependencies.addAll(asList(libraryModelUrls));
-        }
-        return intellijDependencies;
-    }
-
+    @Override
     public void close() {
-        for (Library.ModifiableModel libraryModel : libraryModels.values()) {
+        for (Library library : libraryModels.values()) {
+            Library.ModifiableModel libraryModel = library.getModifiableModel();
             if (libraryModel.isChanged()) {
                 libraryModel.commit();
             } else {

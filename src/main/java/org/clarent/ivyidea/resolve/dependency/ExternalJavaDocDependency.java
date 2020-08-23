@@ -28,8 +28,8 @@ import java.io.File;
 
 public class ExternalJavaDocDependency extends ExternalDependency {
 
-    public ExternalJavaDocDependency(Artifact artifact, File externalArtifact, final String configurationName) {
-        super(artifact, externalArtifact, configurationName);
+    public ExternalJavaDocDependency(Artifact artifact, File externalArtifact) {
+        super(artifact, externalArtifact);
     }
 
     protected String getTypeName() {

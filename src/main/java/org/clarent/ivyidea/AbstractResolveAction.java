@@ -30,6 +30,7 @@ import org.clarent.ivyidea.resolve.dependency.ExternalDependency;
 import org.clarent.ivyidea.resolve.dependency.InternalDependency;
 import org.clarent.ivyidea.resolve.problem.ResolveProblem;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -38,13 +39,9 @@ import java.util.Set;
  */
 public abstract class AbstractResolveAction extends AnAction {
 
-    protected void updateIntellijModel(final Module module, final List<ExternalDependency> externalDependencies, final List<InternalDependency> internalDependencies) {
+    protected void updateIntellijModel(final Module module, final Collection<ExternalDependency> externalDependencies, final Collection<InternalDependency> internalDependencies) {
         IntellijModuleWrapper moduleWrapper = ApplicationManager.getApplication().runReadAction((Computable<IntellijModuleWrapper>) () -> IntellijModuleWrapper.forModule(module));
-        try {
-            moduleWrapper.updateDependencies(externalDependencies, internalDependencies);
-        } finally {
-            ApplicationManager.getApplication().invokeLater(() -> ApplicationManager.getApplication().runWriteAction(moduleWrapper::close));
-        }
+        moduleWrapper.updateDependencies(externalDependencies, internalDependencies);
     }
 
     protected void clearConsole(final Project project) {
