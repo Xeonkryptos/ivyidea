@@ -17,6 +17,7 @@
 package org.clarent.ivyidea.intellij.model;
 
 import com.google.common.collect.Streams;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.roots.ModifiableRootModel;
 import com.intellij.openapi.roots.ModuleOrderEntry;
@@ -56,7 +57,8 @@ public class IntellijModuleWrapper implements AutoCloseable {
     }
 
     public void updateDependencies(Collection<ExternalDependency> resolvedExternalDependencies, Collection<InternalDependency> resolvedInternalDependencies) {
-        Streams.concat(resolvedExternalDependencies.stream(), resolvedInternalDependencies.stream()).forEach(resolvedDependency -> resolvedDependency.addTo(this));
+        Streams.concat(resolvedExternalDependencies.stream(), resolvedInternalDependencies.stream())
+                .forEach(resolvedDependency -> resolvedDependency.addTo(this));
         removeDependenciesNotInList(resolvedExternalDependencies, resolvedInternalDependencies);
     }
 
@@ -74,12 +76,16 @@ public class IntellijModuleWrapper implements AutoCloseable {
     }
 
     public void addModuleDependency(Module module) {
-        intellijModule.addModuleOrderEntry(module);
+        ApplicationManager.getApplication().invokeLater(() -> ApplicationManager.getApplication().runWriteAction(() -> {
+            intellijModule.addModuleOrderEntry(module);
+        }));
     }
 
     public void addExternalDependency(ExternalDependency externalDependency) {
-        ModifiableModel libraryModel = libraryModels.getForExternalDependency(externalDependency);
-        libraryModel.addRoot(externalDependency.getUrlForLibraryRoot(), externalDependency.getType());
+        ApplicationManager.getApplication().invokeLater(() -> ApplicationManager.getApplication().runWriteAction(() -> {
+            ModifiableModel libraryModel = libraryModels.getForExternalDependency(externalDependency);
+            libraryModel.addRoot(externalDependency.getUrlForLibraryRoot(), externalDependency.getType());
+        }));
     }
 
     public boolean alreadyHasDependencyOnModule(Module module) {
@@ -103,10 +109,12 @@ public class IntellijModuleWrapper implements AutoCloseable {
     }
 
     public void removeDependenciesNotInList(Collection<ExternalDependency> externalDependenciesToKeep, Collection<InternalDependency> internalDependenciesToKeep) {
-        for (OrderRootType type : OrderRootType.getAllTypes()) {
+        OrderRootType[] orderRootTypes = OrderRootType.getAllTypes();
+        List<Runnable> dependencyRemoveAction = new ArrayList<>();
+        for (OrderRootType type : orderRootTypes) {
             List<String> dependenciesToRemove = getDependenciesToRemove(type, externalDependenciesToKeep);
-            for (String dependencyUrl : dependenciesToRemove) {
-                libraryModels.removeDependency(type, dependencyUrl);
+            for (String dependencyToRemove : dependenciesToRemove) {
+                dependencyRemoveAction.add(() -> libraryModels.removeDependency(type, dependencyToRemove));
             }
         }
 
@@ -115,7 +123,8 @@ public class IntellijModuleWrapper implements AutoCloseable {
         for (ResolvedDependency dependency : externalDependenciesToKeep) {
             if (dependency instanceof ExternalDependency) {
                 ExternalDependency externalDependency = (ExternalDependency) dependency;
-                String library = IvyIdeaConfigHelper.getCreatedLibraryName(intellijModule, externalDependency.getConfigurationName());
+                String library = IvyIdeaConfigHelper.getCreatedLibraryName(intellijModule,
+                        externalDependency.getConfigurationName());
                 librariesInUse.add(library);
             }
         }
@@ -124,7 +133,7 @@ public class IntellijModuleWrapper implements AutoCloseable {
         for (Library library : libraryTable.getLibraries()) {
             final String libraryName = library.getName();
             if (IvyIdeaConfigHelper.isCreatedLibraryName(libraryName) && !librariesInUse.contains(libraryName)) {
-                libraryTable.removeLibrary(library);
+                dependencyRemoveAction.add(() -> libraryTable.removeLibrary(library));
             }
         }
 
@@ -137,9 +146,14 @@ public class IntellijModuleWrapper implements AutoCloseable {
             if (!internalModulesToKeep.contains(moduleDependency.getName())) {
                 ModuleOrderEntry moduleOrderEntry = intellijModule.findModuleOrderEntry(moduleDependency);
                 if (moduleOrderEntry != null) {
-                    intellijModule.removeOrderEntry(moduleOrderEntry);
+                    dependencyRemoveAction.add(() -> intellijModule.removeOrderEntry(moduleOrderEntry));
                 }
             }
+        }
+
+        Runnable[] dependencyRemoveActionArray = dependencyRemoveAction.toArray(new Runnable[0]);
+        for (Runnable runnable : dependencyRemoveActionArray) {
+            ApplicationManager.getApplication().invokeLater(() -> ApplicationManager.getApplication().runWriteAction(runnable));
         }
     }
 

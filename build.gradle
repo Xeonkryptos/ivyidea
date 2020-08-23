@@ -52,6 +52,13 @@ patchPluginXml {
             <strong>1.0.16.1</strong>
             <ul>
                 <li>Removing internal module references when the reference in ivy.xml is gone</li>
+                <li>
+                Added checkbox "Detect dependencies on other modules in the same project of the same version". Enabling
+                it will force IvyIDEA to resolve dependencies to internal modules only when the request revision of the
+                dependency is exactly the same as defined in the ivy.xml of the dependency module. If it doesn't match,
+                it is handled as external dependency.
+                </li>
+                <li>Optimized final resolving steps to be not executed on UI thread to avoid UI freezes as much as possible<li>
             </ul>
             <strong>1.0.16</strong>
             <ul>
