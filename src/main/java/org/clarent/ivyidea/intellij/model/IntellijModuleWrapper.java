@@ -111,7 +111,7 @@ public class IntellijModuleWrapper implements AutoCloseable {
         }
 
         // remove resolved libraries that are no longer used
-        Set<String> librariesInUse = new HashSet<String>();
+        Set<String> librariesInUse = new HashSet<>();
         for (ResolvedDependency dependency : externalDependenciesToKeep) {
             if (dependency instanceof ExternalDependency) {
                 ExternalDependency externalDependency = (ExternalDependency) dependency;

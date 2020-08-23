@@ -27,6 +27,11 @@
         will be overwritten by gradle
     </change-notes>
 
+    <applicationListeners>
+        <listener class="org.clarent.ivyidea.intellij.IvyFileChangeListener"
+                  topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
+    </applicationListeners>
+
     <actions>
         <group id="IvyIDEA.Menu" text="IvyIDEA" description="Resolve module dependencies using Ivy"
                popup="true">
