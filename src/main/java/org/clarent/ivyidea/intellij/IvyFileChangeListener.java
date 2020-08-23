@@ -23,14 +23,13 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.roots.ProjectFileIndex;
 import com.intellij.openapi.roots.ProjectRootManager;
-import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.newvfs.BulkFileListener;
 import com.intellij.openapi.vfs.newvfs.events.VFileContentChangeEvent;
 import com.intellij.openapi.vfs.newvfs.events.VFileEvent;
+import org.clarent.ivyidea.ivy.IvyUtil;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author Xeonkryptos
@@ -45,27 +44,27 @@ public class IvyFileChangeListener implements BulkFileListener {
 
     @Override
     public void before(@NotNull List<? extends VFileEvent> events) {
-        Set<VirtualFile> ivyFiles = events.stream()
-                .filter(event -> event.getPath().endsWith("ivy.xml"))
+        Project[] openProjects = projectManager.getOpenProjects();
+        ProjectFileIndex[] fileIndices = new ProjectFileIndex[openProjects.length];
+        for (int i = 0; i < openProjects.length; i++) {
+            Project openProject = openProjects[i];
+            ProjectRootManager projectRootManager = ProjectRootManager.getInstance(openProject);
+            fileIndices[i] = projectRootManager.getFileIndex();
+        }
+        events.stream()
                 .filter(event -> event instanceof VFileContentChangeEvent)
                 .map(event -> ((VFileContentChangeEvent) event).getFile())
-                .collect(Collectors.toSet());
-        if (!ivyFiles.isEmpty()) {
-            for (Project openProject : projectManager.getOpenProjects()) {
-                ProjectRootManager projectRootManager = ProjectRootManager.getInstance(openProject);
-                ProjectFileIndex fileIndex = projectRootManager.getFileIndex();
-
-                Iterator<VirtualFile> iterator = ivyFiles.iterator();
-                while (iterator.hasNext()) {
-                    VirtualFile virtualFile = iterator.next();
-                    if (fileIndex.isInContent(virtualFile)) {
-                        Module moduleForFile = fileIndex.getModuleForFile(virtualFile);
-                        updatableModules.add(moduleForFile);
-                        iterator.remove();
+                .map(virtualFile -> {
+                    for (ProjectFileIndex fileIndex : fileIndices) {
+                        if (fileIndex.isInContent(virtualFile)) {
+                            return fileIndex.getModuleForFile(virtualFile);
+                        }
                     }
-                }
-            }
-        }
+                    return null;
+                })
+                .filter(Objects::nonNull)
+                .filter(IvyUtil::hasIvyFile)
+                .forEach(updatableModules::add);
     }
 
     @Override
@@ -75,11 +74,13 @@ public class IvyFileChangeListener implements BulkFileListener {
             dataContextData.put(LangDataKeys.MODULE.getName(), updatableModule);
             dataContextData.put(LangDataKeys.PROJECT.getName(), updatableModule.getProject());
             DataContext dataContext = SimpleDataContext.getSimpleContext(dataContextData, null);
+            Presentation presentation = new Presentation();
+            presentation.setText(updatableModule.getName());
             am.getAction("IvyIDEA.UpdateSingleModuleDependencies")
                     .actionPerformed(new AnActionEvent(null,
                             dataContext,
                             ActionPlaces.TOOLBAR,
-                            new Presentation(),
+                            presentation,
                             ActionManager.getInstance(),
                             0));
         }

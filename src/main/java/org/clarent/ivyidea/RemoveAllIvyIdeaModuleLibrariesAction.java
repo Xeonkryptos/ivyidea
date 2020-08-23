@@ -32,6 +32,7 @@ import com.intellij.openapi.roots.libraries.LibraryTable;
 import org.clarent.ivyidea.config.IvyIdeaConfigHelper;
 import org.clarent.ivyidea.intellij.IntellijUtils;
 import org.clarent.ivyidea.intellij.task.IvyIdeaBackgroundTask;
+import org.clarent.ivyidea.ivy.IvyManager;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -49,6 +50,8 @@ public class RemoveAllIvyIdeaModuleLibrariesAction extends AnAction {
                 final Module[] facet = IntellijUtils.getAllModulesWithIvyIdeaFacet(project);
                 indicator.setIndeterminate(false);
                 for (final Module module : facet) {
+                    IvyManager ivyManager = new IvyManager();
+                    ivyManager.removeModuleIvyRevision(module);
                     indicator.setText2("Removing for module " + module.getName());
                     ApplicationManager.getApplication().invokeAndWait(() -> ApplicationManager.getApplication().runWriteAction(() -> {
                         final ModifiableRootModel model = ModuleRootManager.getInstance(module).getModifiableModel();

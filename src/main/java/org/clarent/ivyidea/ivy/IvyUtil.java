@@ -73,11 +73,20 @@ public class IvyUtil {
         return new File(ivyFile);
     }
 
+    public static boolean hasIvyFile(Module module) {
+        final IvyIdeaFacetConfiguration configuration = IvyIdeaFacetConfiguration.getInstance(module);
+        if (configuration == null) {
+            return false;
+        }
+        String ivyFile = configuration.getIvyFile();
+        return !StringUtils.isBlank(ivyFile);
+    }
+
     /**
      * Parses the given ivyFile into a ModuleDescriptor using the given settings.
      *
-     * @param ivyFile  the ivy file to parse
-     * @param ivy the Ivy engine to use, configured with the appropriate settings
+     * @param ivyFile the ivy file to parse
+     * @param ivy     the Ivy engine to use, configured with the appropriate settings
      * @return the ModuleDescriptor object representing the ivy file.
      */
     public static ModuleDescriptor parseIvyFile(@NotNull File ivyFile, @NotNull Ivy ivy) {
@@ -101,11 +110,10 @@ public class IvyUtil {
      * Will never throw an exception, if something goes wrong, null is returned
      *
      * @param ivyFileName the name of the ivy file to parse
-     * @param ivy the Ivy engine to use, configured with the appropriate settings
+     * @param ivy         the Ivy engine to use, configured with the appropriate settings
      * @return a set of configurations, null if anything went wrong parsing the ivy file
-     *
      * @throws java.text.ParseException if there was an error parsing the ivy file; if the file
-     *          does not exist or is a directory, no exception will be thrown
+     *                                  does not exist or is a directory, no exception will be thrown
      */
     @Nullable
     public static Set<Configuration> loadConfigurations(@NotNull String ivyFileName, @NotNull Ivy ivy) throws ParseException {
@@ -156,11 +164,6 @@ public class IvyUtil {
     }
 
     private static void registerConsoleLogger(final Ivy ivy, final Project project) {
-        ivy.getLoggerEngine().pushLogger(
-                new ConsoleViewMessageLogger(
-                        project,
-                        IntellijUtils.getConsoleView(project)
-                )
-        );
+        ivy.getLoggerEngine().pushLogger(new ConsoleViewMessageLogger(project, IntellijUtils.getConsoleView(project)));
     }
 }

@@ -54,6 +54,8 @@ public class ResolveForAllModulesAction extends AbstractResolveAction {
 
                 Collection<IntellijDependencyResolver> resolvers = new ArrayList<>();
                 for (final Module module : IntellijUtils.getAllModulesWithIvyIdeaFacet(project)) {
+                    ivyManager.updateModuleIvyRevision(module);
+
                     getProgressMonitorThread().setIvy(ivyManager.getIvy(module));
                     indicator.setText2("Resolving for module " + module.getName());
                     final IntellijDependencyResolver resolver = new IntellijDependencyResolver(ivyManager);

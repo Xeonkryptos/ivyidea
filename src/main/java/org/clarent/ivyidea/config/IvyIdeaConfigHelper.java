@@ -135,6 +135,10 @@ public class IvyIdeaConfigHelper {
         return getProjectConfig(project).isDetectDependenciesOnOtherModules();
     }
 
+    public static boolean detectDependenciesOnOtherModulesWhileResolvingOfSameVersion(final Project project) {
+        return getProjectConfig(project).isDetectDependenciesOnOtherModulesOfSameVersion();
+    }
+
     @NotNull
     private static IvyIdeaProjectSettings getProjectConfig(Project project) {
         IvyIdeaProjectService component = project.getService(IvyIdeaProjectService.class);

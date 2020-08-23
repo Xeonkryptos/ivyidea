@@ -35,6 +35,7 @@ public class IvyIdeaProjectSettings {
     private boolean libraryNameIncludesModule = false;
     private boolean libraryNameIncludesConfiguration = false;
     private boolean detectDependenciesOnOtherModules = true;
+    private boolean detectDependenciesOnOtherModulesOfSameVersion = false;
     private String ivyLogLevelThreshold = IvyLogLevel.None.name();
 
 
@@ -136,6 +137,14 @@ public class IvyIdeaProjectSettings {
 
     public void setDetectDependenciesOnOtherModules(boolean detectDependenciesOnOtherModules) {
         this.detectDependenciesOnOtherModules = detectDependenciesOnOtherModules;
+    }
+
+    public boolean isDetectDependenciesOnOtherModulesOfSameVersion() {
+        return detectDependenciesOnOtherModulesOfSameVersion;
+    }
+
+    public void setDetectDependenciesOnOtherModulesOfSameVersion(boolean detectDependenciesOnOtherModulesOfSameVersion) {
+        this.detectDependenciesOnOtherModulesOfSameVersion = detectDependenciesOnOtherModulesOfSameVersion;
     }
 
     public String getIvyLogLevelThreshold() {

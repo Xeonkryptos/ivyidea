@@ -17,6 +17,7 @@
 package org.clarent.ivyidea.ivy;
 
 import com.intellij.openapi.module.Module;
+import com.intellij.openapi.util.Key;
 import org.apache.ivy.Ivy;
 import org.apache.ivy.core.module.descriptor.ModuleDescriptor;
 import org.apache.ivy.core.settings.IvySettings;
@@ -35,8 +36,10 @@ import java.util.Map;
 
 public class IvyManager {
 
-    private Map<Module, Ivy> configuredIvyInstances = new HashMap<Module, Ivy>();
-    private Map<Module, ModuleDescriptor> moduleDescriptors = new HashMap<Module, ModuleDescriptor>();
+    public static final Key<String> MODULE_IVY_REVISION = new Key<>("MODULE_IVY_REVISION");
+
+    private final Map<Module, Ivy> configuredIvyInstances = new HashMap<Module, Ivy>();
+    private final Map<Module, ModuleDescriptor> moduleDescriptors = new HashMap<Module, ModuleDescriptor>();
 
     public Ivy getIvy(final Module module) throws IvySettingsNotFoundException, IvySettingsFileReadException {
         if (!configuredIvyInstances.containsKey(module)) {
@@ -55,6 +58,7 @@ public class IvyManager {
             if (ivyFile != null) {
                 try {
                     final ModuleDescriptor descriptor = IvyUtil.parseIvyFile(ivyFile, getIvy(module));
+                    updateModuleIvyRevision(descriptor, module);
                     moduleDescriptors.put(module, descriptor);
                 } catch (RuntimeException e) {
                     // ignore
@@ -66,5 +70,25 @@ public class IvyManager {
         }
 
         return moduleDescriptors.get(module);
+    }
+
+    public void updateModuleIvyRevision(Module module) throws IvySettingsFileReadException, IvySettingsNotFoundException {
+        final File ivyFile = IvyUtil.getIvyFile(module);
+        if (ivyFile != null) {
+            ModuleDescriptor moduleDescriptor = getModuleDescriptor(ivyFile, module);
+            module.putUserData(MODULE_IVY_REVISION, moduleDescriptor.getRevision());
+        }
+    }
+
+    public void removeModuleIvyRevision(Module module) {
+        module.putUserData(MODULE_IVY_REVISION, null);
+    }
+
+    private void updateModuleIvyRevision(ModuleDescriptor moduleDescriptor, Module module) {
+        module.putUserData(MODULE_IVY_REVISION, moduleDescriptor.getRevision());
+    }
+
+    private ModuleDescriptor getModuleDescriptor(File ivyFile, Module module) throws IvySettingsFileReadException, IvySettingsNotFoundException {
+        return IvyUtil.parseIvyFile(ivyFile, getIvy(module));
     }
 }

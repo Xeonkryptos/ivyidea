@@ -20,6 +20,7 @@ import com.intellij.openapi.module.Module;
 import org.apache.ivy.core.module.descriptor.DependencyDescriptor;
 import org.apache.ivy.core.module.descriptor.ModuleDescriptor;
 import org.apache.ivy.core.module.id.ModuleId;
+import org.apache.ivy.core.module.id.ModuleRevisionId;
 import org.clarent.ivyidea.exception.IvySettingsFileReadException;
 import org.clarent.ivyidea.exception.IvySettingsNotFoundException;
 import org.clarent.ivyidea.intellij.IntellijUtils;
@@ -28,6 +29,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.logging.Logger;
 
 /**
@@ -38,9 +40,9 @@ class IntellijModuleDependencies {
 
     private static final Logger LOGGER = Logger.getLogger(IntellijModuleDependencies.class.getName());
 
-    private IvyManager ivyManager;
-    private Module module;
-    private Map<ModuleId, Module> moduleDependencies = new HashMap<ModuleId, Module>();
+    private final IvyManager ivyManager;
+    private final Module module;
+    private final Map<ModuleId, Module> moduleDependencies = new HashMap<ModuleId, Module>();
 
     public IntellijModuleDependencies(Module module, IvyManager ivyManager) throws IvySettingsNotFoundException, IvySettingsFileReadException {
         this.module = module;
@@ -54,6 +56,17 @@ class IntellijModuleDependencies {
 
     public boolean isInternalIntellijModuleDependency(ModuleId moduleId) {
         return moduleDependencies.containsKey(moduleId);
+    }
+
+    public boolean isInternalIntellijModuleDependencyWithSameRevision(ModuleRevisionId moduleRevisionId) {
+        if (isInternalIntellijModuleDependency(moduleRevisionId.getModuleId())) {
+            String targetDependencyRevision = moduleRevisionId.getRevision();
+
+            Module internalModule = moduleDependencies.get(moduleRevisionId.getModuleId());
+            String internalModuleRevision = internalModule.getUserData(IvyManager.MODULE_IVY_REVISION);
+            return Objects.equals(targetDependencyRevision, internalModuleRevision);
+        }
+        return false;
     }
 
     public Module getModuleDependency(ModuleId moduleId) {

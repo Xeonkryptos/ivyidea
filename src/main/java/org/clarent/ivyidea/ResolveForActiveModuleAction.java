@@ -53,6 +53,7 @@ public class ResolveForActiveModuleAction extends AbstractResolveAction {
                     clearConsole(myProject);
 
                     final IvyManager ivyManager = new IvyManager();
+                    ivyManager.updateModuleIvyRevision(module);
                     getProgressMonitorThread().setIvy(ivyManager.getIvy(module));
 
                     final IntellijDependencyResolver resolver = new IntellijDependencyResolver(ivyManager);
