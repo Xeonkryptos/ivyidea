@@ -43,12 +43,14 @@ public class ResolveForActiveModuleAction extends AbstractResolveAction {
 
     private static final String MENU_TEXT = "Resolve for {0} module";
 
+    @Override
     public void actionPerformed(final AnActionEvent e) {
         FileDocumentManager.getInstance().saveAllDocuments();
 
         final Module module = LangDataKeys.MODULE.getData(e.getDataContext());
         if (module != null) {
             ProgressManager.getInstance().run(new IvyIdeaResolveBackgroundTask(module.getProject(), e) {
+                @Override
                 public void doResolve(@NotNull ProgressIndicator progressIndicator) throws IvySettingsNotFoundException, IvyFileReadException, IvySettingsFileReadException {
                     clearConsole(myProject);
 
@@ -65,6 +67,7 @@ public class ResolveForActiveModuleAction extends AbstractResolveAction {
         }
     }
 
+    @Override
     public void update(AnActionEvent e) {
         final Module activeModule = LangDataKeys.MODULE.getData(e.getDataContext());
         updatePresentation(e.getPresentation(), activeModule);

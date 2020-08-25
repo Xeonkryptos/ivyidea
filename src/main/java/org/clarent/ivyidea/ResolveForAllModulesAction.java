@@ -42,11 +42,13 @@ import java.util.Collection;
  */
 public class ResolveForAllModulesAction extends AbstractResolveAction {
 
+    @Override
     public void actionPerformed(AnActionEvent e) {
         FileDocumentManager.getInstance().saveAllDocuments();
 
         final Project project = PlatformDataKeys.PROJECT.getData(e.getDataContext());
         ProgressManager.getInstance().run(new IvyIdeaResolveBackgroundTask(project, e) {
+            @Override
             public void doResolve(final @NotNull ProgressIndicator indicator) throws IvySettingsNotFoundException, IvyFileReadException, IvySettingsFileReadException {
                 clearConsole(myProject);
 

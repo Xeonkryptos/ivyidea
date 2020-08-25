@@ -34,17 +34,20 @@
 
     <actions>
         <group id="IvyIDEA.Menu" text="IvyIDEA" description="Resolve module dependencies using Ivy"
-               popup="true">
+               popup="true" icon="/ivyidea16.png">
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
             <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
             <add-to-group group-id="ToolsMenu" anchor="first"/>
+            <add-to-group group-id="MainToolBar" anchor="last"/>
             <separator/>
             <action id="IvyIDEA.UpdateSingleModuleDependencies"
-                    class="org.clarent.ivyidea.ResolveForActiveModuleAction" text="Resolve for Active Module"
+                    class="org.clarent.ivyidea.ResolveForActiveModuleAction"
+                    text="Resolve for Active Module"
                     description="Resolve dependencies for the active module">
             </action>
             <action id="IvyIDEA.UpdateAllDependencies"
-                    class="org.clarent.ivyidea.ResolveForAllModulesAction" text="Resolve for All Modules"
+                    class="org.clarent.ivyidea.ResolveForAllModulesAction"
+                    text="Resolve for All Modules"
                     description="Resolve dependencies for all modules">
             </action>
             <separator/>
@@ -55,13 +58,14 @@
         </group>
     </actions>
     <extensions defaultExtensionNs="com.intellij">
+        <projectService serviceImplementation="org.clarent.ivyidea.intellij.IvyIdeaProjectService"/>
+        <projectService serviceImplementation="org.clarent.ivyidea.intellij.IvyIdeaConsoleService"/>
 
-        <projectService serviceImplementation="org.clarent.ivyidea.intellij.IvyIdeaProjectService" />
-        <projectService serviceImplementation="org.clarent.ivyidea.intellij.IvyIdeaConsoleService" />
+        <project.converterProvider
+                implementation="org.clarent.ivyidea.intellij.facet.config.IvyIdeaLegacyFacetConfigConverterProvider"/>
 
-        <project.converterProvider implementation="org.clarent.ivyidea.intellij.facet.config.IvyIdeaLegacyFacetConfigConverterProvider"/>
-
-        <toolWindow id="IvyIDEA" icon="/ivyidea13.png" anchor="bottom" canCloseContents="false" factoryClass="org.clarent.ivyidea.intellij.IvyIdeaConsoleToolWindowFactory"/>
+        <toolWindow id="IvyIDEA" icon="/ivyidea13.png" anchor="bottom" canCloseContents="false"
+                    factoryClass="org.clarent.ivyidea.intellij.IvyIdeaConsoleToolWindowFactory"/>
 
         <facetType implementation="org.clarent.ivyidea.intellij.facet.IvyIdeaFacetType"/>
         <framework.detector implementation="org.clarent.ivyidea.intellij.facet.IvyIdeaFacetDetector"/>
