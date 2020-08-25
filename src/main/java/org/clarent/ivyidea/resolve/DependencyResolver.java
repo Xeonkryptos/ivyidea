@@ -21,7 +21,6 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.DependencyScope;
 import org.apache.ivy.Ivy;
 import org.apache.ivy.core.module.descriptor.Artifact;
-import org.apache.ivy.core.module.descriptor.Configuration;
 import org.apache.ivy.core.module.descriptor.ModuleDescriptor;
 import org.apache.ivy.core.module.id.ModuleRevisionId;
 import org.apache.ivy.core.report.ArtifactDownloadReport;
@@ -37,11 +36,10 @@ import org.clarent.ivyidea.exception.IvySettingsFileReadException;
 import org.clarent.ivyidea.exception.IvySettingsNotFoundException;
 import org.clarent.ivyidea.ivy.IvyManager;
 import org.clarent.ivyidea.ivy.IvyUtil;
-import org.clarent.ivyidea.resolve.dependency.*;
+import org.clarent.ivyidea.resolve.dependency.ExternalDependency;
+import org.clarent.ivyidea.resolve.dependency.ExternalDependencyFactory;
+import org.clarent.ivyidea.resolve.dependency.InternalDependency;
 import org.clarent.ivyidea.resolve.problem.ResolveProblem;
-import org.clarent.ivyidea.resolve.sort.ConfigurationGraph;
-import org.clarent.ivyidea.resolve.sort.ConfigurationGraphSorter;
-import org.clarent.ivyidea.resolve.sort.ConfigurationNode;
 
 import java.io.File;
 import java.io.IOException;
@@ -64,7 +62,8 @@ class DependencyResolver {
     private final Module module;
     private final IvyManager ivyManager;
 
-    private final Map<String, DependencyScope> dependencyScopes;
+    private final Map<String, DependencyScope> dependencyScopesByConfigurations;
+    private final Map<String, DependencyScope> dependencyScopesByDependencies;
 
     public DependencyResolver(Module module, IvyManager ivyManager) {
         this.module = module;
@@ -73,7 +72,8 @@ class DependencyResolver {
         resolveProblems = new ArrayList<>();
         resolvedExternalDependencies = new HashSet<>();
         resolvedInternalDependencies = new HashSet<>();
-        dependencyScopes = IvyIdeaConfigHelper.getDependencyScopes(module);
+        dependencyScopesByDependencies = new HashMap<>();
+        dependencyScopesByConfigurations = IvyIdeaConfigHelper.getDependencyScopes(module);
     }
 
     public List<ResolveProblem> getResolveProblems() {
@@ -96,59 +96,28 @@ class DependencyResolver {
 
         final Ivy ivy = ivyManager.getIvy(module);
         try {
-            Set<Configuration> configurations = IvyUtil.loadConfigurations(ivyFile.getAbsolutePath(), ivy);
-
-            List<String> sortedConfigurations = Collections.emptyList();
-            if (configurations != null) {
-                /*
-                 * Configurations extends from each other leading to a configuration graph and a multi-mapping of
-                 * dependencies to different configurations. Thus, you'll get duplicates of the same dependency for
-                 * different configurations, also it is defined only once within the ivy.xml.
-                 * That's nothing new and generally, nothing problematic. But, if you want to map the dependencies to
-                 * different dependency scopes managed by IntelliJ IDEA, you have to take the lowest configuration the
-                 * dependency is mapped to and the corresponding dependency scope mapping for this configuration to get
-                 * the correct result.
-                 * Sadly, Ivy doesn't provide you something like that in its reports or anywhere else. Therefore, a
-                 * topology sort is used to sort the available configurations to get the lowest one at index 0 and so on.
-                 * This order you finally use to receive the resolved dependencies for every configuration. The first
-                 * occurrence of a dependency defines the dependency scope based on the configuration. Other occurrences
-                 * on other/later configurations are simply ignored. There can only be one scope mapping and mostly
-                 * they are extended from each other. So, there are usually no losses. Even if there are "losses" because
-                 * of a missing extends, you'll see a combination of both configurations in a build script or something.
-                 * Nothing important, the IDE needs to know or do something against or for it, anyway.
-                 */
-                ConfigurationGraph graph = new ConfigurationGraph();
-                for (Configuration configuration : configurations) {
-                    graph.addNode(new ConfigurationNode(configuration));
-                }
-                sortedConfigurations = ConfigurationGraphSorter.topoSort(graph);
-            }
-
             ResolveOptions resolveOptions = IvyIdeaConfigHelper.createResolveOptions(module);
             final ResolveReport resolveReport = ivy.resolve(ivyFile.toURI().toURL(), resolveOptions);
-            extractDependencies(ivy, resolveReport, new IntellijModuleDependencies(module, ivyManager), sortedConfigurations);
+            extractDependencies(ivy, resolveReport, new IntellijModuleDependencies(module, ivyManager));
         } catch (ParseException | IOException e) {
             throw new IvyFileReadException(ivyFile.getAbsolutePath(), module.getName(), e);
         }
     }
 
     // TODO: This method performs way too much tasks -- refactor it!
-    protected void extractDependencies(Ivy ivy, ResolveReport resolveReport, IntellijModuleDependencies moduleDependencies, List<String> sortedConfigurations) {
-        final String[] resolvedConfigurations = resolveReport.getConfigurations();
-        sortedConfigurations.retainAll(Arrays.asList(resolvedConfigurations));
-        if (sortedConfigurations.isEmpty()) {
-            sortedConfigurations = new ArrayList<>(Arrays.asList(resolvedConfigurations));
-        }
-        for (String resolvedConfiguration : sortedConfigurations) {
+    protected void extractDependencies(Ivy ivy, ResolveReport resolveReport, IntellijModuleDependencies moduleDependencies) {
+        for (String resolvedConfiguration : resolveReport.getConfigurations()) {
             ConfigurationResolveReport configurationReport = resolveReport.getConfigurationReport(resolvedConfiguration);
 
-            DependencyScope targetDependencyScope = dependencyScopes.getOrDefault(resolvedConfiguration,
+            DependencyScope targetDependencyScope = dependencyScopesByConfigurations.getOrDefault(resolvedConfiguration,
                     DependencyScope.COMPILE);
             // TODO: Refactor this a bit
             registerProblems(configurationReport, moduleDependencies, targetDependencyScope);
 
             Set<ModuleRevisionId> dependencies = configurationReport.getModuleRevisionIds();
             for (ModuleRevisionId dependency : dependencies) {
+                String dependencyName = dependency.getOrganisation() + ":" + dependency.getName() + ":" + dependency.getRevision();
+                targetDependencyScope = getDependencyScopeFor(dependencyName, targetDependencyScope);
                 if (isModuleToBeHandledAsInternalDependency(moduleDependencies, dependency)) {
                     // If the user has chosen to detect dependencies on internal modules we add a module dependency rather
                     // than a dependency on an external library.
@@ -245,5 +214,11 @@ class DependencyResolver {
         return detectDependenciesOnOtherModulesWhileResolving && moduleDependencies.isInternalIntellijModuleDependency(
                 dependency.getModuleId()) && (!detectDependenciesOnOtherModulesOfSameVersionWhileResolving || moduleDependencies
                 .isInternalIntellijModuleDependencyWithSameRevision(dependency));
+    }
+
+    private DependencyScope getDependencyScopeFor(String dependencyName, DependencyScope configurationScope) {
+        return dependencyScopesByDependencies.merge(dependencyName,
+                configurationScope,
+                (oldDependencyScope, newDependencyScope) -> newDependencyScope.ordinal() >= oldDependencyScope.ordinal() ? newDependencyScope : oldDependencyScope);
     }
 }
