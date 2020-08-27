@@ -16,9 +16,13 @@
 
 package org.clarent.ivyidea.intellij.ui;
 
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectManager;
+import org.clarent.ivyidea.config.model.IvyIdeaApplicationSettings;
 import org.clarent.ivyidea.config.model.IvyIdeaProjectSettings;
+import org.clarent.ivyidea.intellij.IvyIdeaApplicationService;
 import org.clarent.ivyidea.intellij.IvyIdeaProjectService;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NonNls;
@@ -31,9 +35,10 @@ import javax.swing.*;
  */
 public class IvyIdeaProjectSettingsComponent implements Configurable {
 
+    private final Project defaultProject = ProjectManager.getInstance().getDefaultProject();
     private final Project project;
 
-    private IvyIdeaProjectSettingsPanel settingsPanel;
+    private IvyIdeaSettingsPanel settingsPanel;
 
     public IvyIdeaProjectSettingsComponent(Project project) {
         this.project = project;
@@ -59,16 +64,24 @@ public class IvyIdeaProjectSettingsComponent implements Configurable {
         return getSettingsPanel().createComponent();
     }
 
-    private IvyIdeaProjectSettingsPanel getSettingsPanel() {
+    private IvyIdeaSettingsPanel getSettingsPanel() {
         if (settingsPanel == null) {
-            IvyIdeaProjectService component = project.getService(IvyIdeaProjectService.class);
-            IvyIdeaProjectSettings state;
-            if (component != null) {
-                state = component.getState();
+            IvyIdeaApplicationService applicationService = ServiceManager.getService(IvyIdeaApplicationService.class);
+            IvyIdeaProjectService projectService = project.getService(IvyIdeaProjectService.class);
+            IvyIdeaApplicationSettings applicationState;
+            IvyIdeaProjectSettings projectState;
+            if (applicationService != null) {
+                applicationState = applicationService.getState();
             } else {
-                state = new IvyIdeaProjectSettings();
+                applicationState = new IvyIdeaApplicationSettings();
             }
-            settingsPanel = new IvyIdeaProjectSettingsPanel(project, state);
+
+            if (projectService != null) {
+                projectState = projectService.getState();
+            } else {
+                projectState = new IvyIdeaProjectSettings();
+            }
+            settingsPanel = new IvyIdeaSettingsPanel(project, applicationState, projectState);
         }
         return settingsPanel;
     }

@@ -138,8 +138,8 @@ class DependencyResolver {
                     // This means that dependencies in ivy.xml don't need to explicitly include configurations
                     // for javadoc or sources, just to ensure that the plugin can see them. The plugin will
                     // get all javadocs and sources it can find for each dependency.
-                    final boolean attachSources = IvyIdeaConfigHelper.alwaysAttachSources(project);
-                    final boolean attachJavadocs = IvyIdeaConfigHelper.alwaysAttachJavadocs(project);
+                    final boolean attachSources = IvyIdeaConfigHelper.alwaysAttachSources();
+                    final boolean attachJavadocs = IvyIdeaConfigHelper.alwaysAttachJavadocs();
                     if (attachSources || attachJavadocs) {
                         final IvyNode node = configurationReport.getDependency(dependency);
                         final ModuleDescriptor md = node.getDescriptor();
@@ -147,8 +147,7 @@ class DependencyResolver {
                         for (Artifact artifact : artifacts) {
                             // TODO: if sources are found, don't bother attaching javadoc?
                             // That way, IDEA will generate the javadoc and resolve links to other javadocs
-                            if ((attachSources && isSource(project, artifact)) || (attachJavadocs && isJavadoc(project,
-                                    artifact))) {
+                            if ((attachSources && isSource(artifact)) || (attachJavadocs && isJavadoc(artifact))) {
                                 if (resolveReport.getArtifacts().contains(artifact)) {
                                     continue; // already resolved, ignore.
                                 }
@@ -167,7 +166,7 @@ class DependencyResolver {
 
     private void addExternalDependency(Artifact artifact, File artifactFile, Project project, DependencyScope dependencyScope) {
         ExternalDependency externalDependency = ExternalDependencyFactory.getInstance()
-                .createExternalDependency(artifact, artifactFile, project, dependencyScope);
+                .createExternalDependency(artifact, artifactFile, dependencyScope);
         if (externalDependency == null) {
             resolveProblems.add(new ResolveProblem(artifact.getModuleRevisionId().toString(),
                     "Unrecognized artifact type: " + artifact.getType() + ", will not add this as a dependency in IntelliJ.",
@@ -181,14 +180,12 @@ class DependencyResolver {
         }
     }
 
-    private boolean isSource(Project project, Artifact artifact) {
-        return ArtifactTypeSettings.DependencyCategory.Sources == ExternalDependencyFactory.determineCategory(project,
-                artifact);
+    private boolean isSource(Artifact artifact) {
+        return ArtifactTypeSettings.DependencyCategory.Sources == ExternalDependencyFactory.determineCategory(artifact);
     }
 
-    private boolean isJavadoc(Project project, Artifact artifact) {
-        return ArtifactTypeSettings.DependencyCategory.Javadoc == ExternalDependencyFactory.determineCategory(project,
-                artifact);
+    private boolean isJavadoc(Artifact artifact) {
+        return ArtifactTypeSettings.DependencyCategory.Javadoc == ExternalDependencyFactory.determineCategory(artifact);
     }
 
     private void registerProblems(ConfigurationResolveReport configurationReport, IntellijModuleDependencies moduleDependencies, DependencyScope dependencyScope) {
@@ -207,10 +204,8 @@ class DependencyResolver {
     }
 
     private boolean isModuleToBeHandledAsInternalDependency(IntellijModuleDependencies moduleDependencies, ModuleRevisionId dependency) {
-        boolean detectDependenciesOnOtherModulesWhileResolving = IvyIdeaConfigHelper.detectDependenciesOnOtherModulesWhileResolving(
-                moduleDependencies.getModule().getProject());
-        boolean detectDependenciesOnOtherModulesOfSameVersionWhileResolving = IvyIdeaConfigHelper.detectDependenciesOnOtherModulesWhileResolvingOfSameVersion(
-                moduleDependencies.getModule().getProject());
+        boolean detectDependenciesOnOtherModulesWhileResolving = IvyIdeaConfigHelper.detectDependenciesOnOtherModulesWhileResolving();
+        boolean detectDependenciesOnOtherModulesOfSameVersionWhileResolving = IvyIdeaConfigHelper.detectDependenciesOnOtherModulesWhileResolvingOfSameVersion();
         return detectDependenciesOnOtherModulesWhileResolving && moduleDependencies.isInternalIntellijModuleDependency(
                 dependency.getModuleId()) && (!detectDependenciesOnOtherModulesOfSameVersionWhileResolving || moduleDependencies
                 .isInternalIntellijModuleDependencyWithSameRevision(dependency));

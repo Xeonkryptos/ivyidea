@@ -21,7 +21,6 @@ import com.intellij.facet.ui.FacetEditorContext;
 import com.intellij.facet.ui.FacetEditorTab;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.module.Module;
-import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.openapi.roots.DependencyScope;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.ui.DocumentAdapter;
@@ -180,7 +179,7 @@ public class BasicSettingsTab extends FacetEditorTab {
                 return txtIvySettingsFile.getTextField().getText();
             }
         } else {
-            return IvyIdeaConfigHelper.getProjectIvySettingsFile(editorContext.getProject());
+            return IvyIdeaConfigHelper.getApplicationIvySettingsFile();
         }
         return null;
     }
@@ -192,7 +191,7 @@ public class BasicSettingsTab extends FacetEditorTab {
         boolean includeProjectProperties = true;
         //noinspection ConstantConditions
         if (includeProjectProperties) {
-            propertiesFiles.addAll(IvyIdeaConfigHelper.getPropertiesFiles(editorContext.getProject()));
+            propertiesFiles.addAll(IvyIdeaConfigHelper.getPropertiesFiles());
         }
         return IvyIdeaConfigHelper.loadProperties(editorContext.getModule(), propertiesFiles);
     }
@@ -215,7 +214,7 @@ public class BasicSettingsTab extends FacetEditorTab {
     }
 
     @Override
-    public void apply() throws ConfigurationException {
+    public void apply() {
         final Facet<?> facet = editorContext.getFacet();
         IvyIdeaFacetConfiguration configuration = (IvyIdeaFacetConfiguration) facet.getConfiguration();
         configuration.setUseProjectSettings(!chkOverrideProjectIvySettings.isSelected());

@@ -40,10 +40,4 @@ public class IvyIdeaConsoleToolWindowFactory implements ToolWindowFactory, DumbA
         Content content = ServiceManager.getService(ContentFactory.class).createContent(console.getComponent(), "Console", true);
         toolWindow.getContentManager().addContent(content);
     }
-
-    @Override
-    public boolean isDoNotActivateOnStart() {
-        // Start with ivyidea toolwindow closed
-        return true;
-    }
 }

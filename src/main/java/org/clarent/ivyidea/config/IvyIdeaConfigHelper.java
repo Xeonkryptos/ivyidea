@@ -16,6 +16,7 @@
 
 package org.clarent.ivyidea.config;
 
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.DependencyScope;
@@ -23,9 +24,11 @@ import com.intellij.util.net.HttpConfigurable;
 import org.apache.ivy.core.resolve.ResolveOptions;
 import org.apache.ivy.core.settings.IvySettings;
 import org.clarent.ivyidea.config.model.ArtifactTypeSettings;
+import org.clarent.ivyidea.config.model.IvyIdeaApplicationSettings;
 import org.clarent.ivyidea.config.model.IvyIdeaProjectSettings;
 import org.clarent.ivyidea.exception.IvySettingsFileReadException;
 import org.clarent.ivyidea.exception.IvySettingsNotFoundException;
+import org.clarent.ivyidea.intellij.IvyIdeaApplicationService;
 import org.clarent.ivyidea.intellij.IvyIdeaProjectService;
 import org.clarent.ivyidea.intellij.facet.config.FacetPropertiesSettings;
 import org.clarent.ivyidea.intellij.facet.config.IvyIdeaFacetConfiguration;
@@ -55,7 +58,7 @@ public class IvyIdeaConfigHelper {
     @NotNull
     public static ResolveOptions createResolveOptions(Module module) {
         ResolveOptions options = new ResolveOptions();
-        getProjectConfig(module.getProject()).updateResolveOptions(options);
+        getApplicationConfig().updateResolveOptions(options);
         final Set<String> configsToResolve = getConfigurationsToResolve(module);
         if (!configsToResolve.isEmpty()) {
             options.setConfs(configsToResolve.toArray(new String[0]));
@@ -81,7 +84,7 @@ public class IvyIdeaConfigHelper {
 
     @NotNull
     public static Map<String, DependencyScope> getDependencyScopes(Module module) {
-        IvyIdeaProjectSettings projectConfig = getProjectConfig(module.getProject());
+        IvyIdeaApplicationSettings projectConfig = getApplicationConfig();
         Map<String, DependencyScope> dependencyScopes = new HashMap<>(projectConfig.getDependencyScopes());
         final IvyIdeaFacetConfiguration moduleConfiguration = IvyIdeaFacetConfiguration.getInstance(module);
         if (moduleConfiguration != null) {
@@ -97,41 +100,47 @@ public class IvyIdeaConfigHelper {
         return Collections.unmodifiableMap(dependencyScopes);
     }
 
-    public static ArtifactTypeSettings getArtifactTypeSettings(Project project)   {
-        return getProjectConfig(project).getArtifactTypeSettings();
+    public static ArtifactTypeSettings getArtifactTypeSettings()   {
+        return getApplicationConfig().getArtifactTypeSettings();
     }
 
-    public static List<String> getPropertiesFiles(Project project) {
-         return getProjectConfig(project).getPropertiesSettings().getPropertyFiles();
+    public static List<String> getPropertiesFiles() {
+         return getApplicationConfig().getPropertiesSettings().getPropertyFiles();
     }
 
-    public static IvyLogLevel getIvyLoggingThreshold(final Project project) {
-        String ivyLogLevelThreshold = getProjectConfig(project).getIvyLogLevelThreshold();
+    public static IvyLogLevel getIvyLoggingThreshold() {
+        String ivyLogLevelThreshold = getApplicationConfig().getIvyLogLevelThreshold();
         return IvyLogLevel.fromName(ivyLogLevelThreshold);
     }
 
-    public static boolean getResolveInBackground(final Project project) {
-        return getProjectConfig(project).isResolveInBackground();
+    public static boolean getResolveInBackground() {
+        return getApplicationConfig().isResolveInBackground();
     }
 
-    public static boolean alwaysAttachSources(final Project project) {
-        return getProjectConfig(project).isAlwaysAttachSources();
+    public static boolean alwaysAttachSources() {
+        return getApplicationConfig().isAlwaysAttachSources();
     }
 
-    public static boolean alwaysAttachJavadocs(final Project project) {
-        return getProjectConfig(project).isAlwaysAttachJavadocs();
+    public static boolean alwaysAttachJavadocs() {
+        return getApplicationConfig().isAlwaysAttachJavadocs();
     }
 
-    public static boolean detectDependenciesOnOtherModulesWhileResolving(final Project project){
-        return getProjectConfig(project).isDetectDependenciesOnOtherModules();
+    public static boolean detectDependenciesOnOtherModulesWhileResolving(){
+        return getApplicationConfig().isDetectDependenciesOnOtherModules();
     }
 
-    public static boolean detectDependenciesOnOtherModulesWhileResolvingOfSameVersion(final Project project) {
-        return getProjectConfig(project).isDetectDependenciesOnOtherModulesOfSameVersion();
+    public static boolean detectDependenciesOnOtherModulesWhileResolvingOfSameVersion() {
+        return getApplicationConfig().isDetectDependenciesOnOtherModulesOfSameVersion();
     }
 
     @NotNull
-    private static IvyIdeaProjectSettings getProjectConfig(Project project) {
+    public static IvyIdeaApplicationSettings getApplicationConfig() {
+        IvyIdeaApplicationService component = ServiceManager.getService(IvyIdeaApplicationService.class);
+        return component.getState();
+    }
+
+    @NotNull
+    public static IvyIdeaProjectSettings getProjectConfig(Project project) {
         IvyIdeaProjectService component = project.getService(IvyIdeaProjectService.class);
         return component.getState();
     }
@@ -140,7 +149,7 @@ public class IvyIdeaConfigHelper {
     private static String getIvySettingsFile(Module module) throws IvySettingsNotFoundException {
         final IvyIdeaFacetConfiguration moduleConfiguration = getModuleConfiguration(module);
         if (moduleConfiguration.isUseProjectSettings()) {
-            return getProjectIvySettingsFile(module.getProject());
+            return getApplicationIvySettingsFile();
         } else {
             return getModuleIvySettingsFile(module, moduleConfiguration);
         }
@@ -172,9 +181,8 @@ public class IvyIdeaConfigHelper {
     }
 
     @Nullable
-    public static String getProjectIvySettingsFile(Project project) throws IvySettingsNotFoundException {
-        IvyIdeaProjectService component = project.getService(IvyIdeaProjectService.class);
-        final IvyIdeaProjectSettings state = component.getState();
+    public static String getApplicationIvySettingsFile() throws IvySettingsNotFoundException {
+        final IvyIdeaApplicationSettings state = getApplicationConfig();
         if (state.isUseCustomIvySettings()) {
             String settingsFile = StringUtils.trim(state.getIvySettingsFile());
             if (StringUtils.isNotBlank(settingsFile)) {
@@ -183,15 +191,15 @@ public class IvyIdeaConfigHelper {
                         && !settingsFile.startsWith("file://")) {
                     File result = new File(settingsFile);
                     if (!result.exists()) {
-                        throw new IvySettingsNotFoundException("The ivy settings file given in the project settings does not exist: " + result.getAbsolutePath(), IvySettingsNotFoundException.ConfigLocation.Project, project.getName());
+                        throw new IvySettingsNotFoundException("The ivy settings file given in the project settings does not exist: " + result.getAbsolutePath(), IvySettingsNotFoundException.ConfigLocation.Project, null);
                     }
                     if (result.isDirectory()) {
-                        throw new IvySettingsNotFoundException("The ivy settings file given in the project settings is a directory: " + result.getAbsolutePath(), IvySettingsNotFoundException.ConfigLocation.Project, project.getName());
+                        throw new IvySettingsNotFoundException("The ivy settings file given in the project settings is a directory: " + result.getAbsolutePath(), IvySettingsNotFoundException.ConfigLocation.Project, null);
                     }
                 }
                 return settingsFile;
             } else {
-                throw new IvySettingsNotFoundException("No ivy settings file specified in the project settings.", IvySettingsNotFoundException.ConfigLocation.Project, project.getName());
+                throw new IvySettingsNotFoundException("No ivy settings file specified in the project settings.", IvySettingsNotFoundException.ConfigLocation.Project, null);
             }
         } else {
             return null; // use ivy standard
@@ -204,7 +212,7 @@ public class IvyIdeaConfigHelper {
         final List<String> propertiesFiles = new ArrayList<>(moduleConfiguration.getPropertiesSettings().getPropertyFiles());
         final FacetPropertiesSettings modulePropertiesSettings = moduleConfiguration.getPropertiesSettings();
         if (modulePropertiesSettings.isIncludeProjectLevelPropertiesFiles()) {
-            propertiesFiles.addAll(getProjectConfig(module.getProject()).getPropertiesSettings().getPropertyFiles());
+            propertiesFiles.addAll(getApplicationConfig().getPropertiesSettings().getPropertyFiles());
         }
         return loadProperties(module, propertiesFiles);
     }

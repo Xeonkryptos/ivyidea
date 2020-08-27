@@ -38,6 +38,8 @@ dependencies {
 intellij {
     version 'LATEST-EAP-SNAPSHOT'
     updateSinceUntilBuild=true
+
+    plugins 'java', 'eclipse'
 }
 
 publishPlugin {
@@ -58,12 +60,22 @@ patchPluginXml {
                 dependency is exactly the same as defined in the ivy.xml of the dependency module. If it doesn't match,
                 it is handled as external dependency.
                 </li>
-                <li>Optimized final resolving steps to be not executed on UI thread to avoid UI freezes as much as possible<li>
+                <li>Optimized final resolving steps to be not executed on UI thread to avoid UI freezes as much as possible.<li>
                 <li>
                 Removed IvyIDEA library container and replaced it with independent library modules. Its the base for
                 dependency scope mapping that is now available. Based on the mapping between configuration and dependency
                 scope you'll won't have any trouble with test dependencies in your compile or runtime scope (i.e. when
                 you're executing a program within your IDE).
+                </li>
+                <li>
+                Upgraded configuration storage from project-level to application level. With it, you may update your
+                configurations again, but you'll do it once for every project you gonna create/open.
+                </li>
+                <li>
+                Added ivy as framework when creating projects/modules to pre-configure the module with an IvyIDEA facet,
+                and a templated ivy.xml. Eclipse files, as long as the plugin 'eclipse-project-creator' is available,
+                are modified to work with basic ivy configuration (adding ivy nature into .project and ivy container
+                into .classpath).
                 </li>
             </ul>
             <strong>1.0.16</strong>

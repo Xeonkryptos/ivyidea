@@ -14,23 +14,21 @@
  * limitations under the License.
  */
 
-package org.clarent.ivyidea.config.model;
+package org.clarent.ivyidea.intellij.listeners.eclipse;
+
+import com.intellij.lang.xml.XMLLanguage;
+import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.PsiManager;
+import com.intellij.psi.SingleRootFileViewProvider;
+import org.jetbrains.annotations.NotNull;
 
 /**
- * @author Guy Mahieu
+ * @author Xeonkryptos
+ * @since 27.08.2020
  */
-public class IvyIdeaProjectSettings {
+public class EclipseFileViewProvider extends SingleRootFileViewProvider {
 
-    private String ivyTemplateContent;
-
-    public String getIvyTemplateContent() {
-        return ivyTemplateContent;
-    }
-
-    public void setIvyTemplateContent(String ivyTemplateContent) {
-        if (ivyTemplateContent != null && ivyTemplateContent.trim().isEmpty()) {
-            ivyTemplateContent = null;
-        }
-        this.ivyTemplateContent = ivyTemplateContent;
+    protected EclipseFileViewProvider(@NotNull PsiManager manager, @NotNull VirtualFile virtualFile, boolean eventSystemEnabled) {
+        super(manager, virtualFile, eventSystemEnabled, XMLLanguage.INSTANCE);
     }
 }

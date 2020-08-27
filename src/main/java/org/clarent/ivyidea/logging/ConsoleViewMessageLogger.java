@@ -19,7 +19,6 @@ package org.clarent.ivyidea.logging;
 import com.intellij.execution.ui.ConsoleView;
 import com.intellij.execution.ui.ConsoleViewContentType;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.project.Project;
 import org.apache.ivy.util.AbstractMessageLogger;
 import org.clarent.ivyidea.config.IvyIdeaConfigHelper;
 
@@ -30,9 +29,9 @@ public class ConsoleViewMessageLogger extends AbstractMessageLogger {
     private final ConsoleView consoleView;
     private final IvyLogLevel threshold;
 
-    public ConsoleViewMessageLogger(final Project project, final ConsoleView consoleView) {
+    public ConsoleViewMessageLogger(final ConsoleView consoleView) {
         this.consoleView = consoleView;
-        threshold = IvyIdeaConfigHelper.getIvyLoggingThreshold(project);
+        threshold = IvyIdeaConfigHelper.getIvyLoggingThreshold();
     }
 
     public void log(final String msg, final int level) {

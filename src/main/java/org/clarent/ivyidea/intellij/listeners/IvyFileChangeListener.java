@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.clarent.ivyidea.intellij;
+package org.clarent.ivyidea.intellij.listeners;
 
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext;
