@@ -39,7 +39,7 @@ intellij {
     version 'LATEST-EAP-SNAPSHOT'
     updateSinceUntilBuild=true
 
-    plugins 'java', 'eclipse'
+    plugins 'java'
 }
 
 publishPlugin {
@@ -73,9 +73,7 @@ patchPluginXml {
                 </li>
                 <li>
                 Added ivy as framework when creating projects/modules to pre-configure the module with an IvyIDEA facet,
-                and a templated ivy.xml. Eclipse files, as long as the plugin 'eclipse-project-creator' is available,
-                are modified to work with basic ivy configuration (adding ivy nature into .project and ivy container
-                into .classpath).
+                and a templated ivy.xml.
                 </li>
             </ul>
             <strong>1.0.16</strong>
