@@ -90,6 +90,16 @@ public class IvyIdeaSettingsPanel {
                 new FileChooserDescriptor(true, false, false, false, false, false));
 
         wireActivityWatchers();
+        detectDependenciesOnOtherModules.addChangeListener(e -> {
+            if (!detectDependenciesOnOtherModules.isSelected()) {
+                detectDependenciesOnOtherModulesOfSameVersion.setSelected(false);
+            }
+        });
+        detectDependenciesOnOtherModulesOfSameVersion.addChangeListener(e -> {
+            if (detectDependenciesOnOtherModulesOfSameVersion.isSelected()) {
+                detectDependenciesOnOtherModules.setSelected(true);
+            }
+        });
         wireIvySettingsRadioButtons();
     }
 
