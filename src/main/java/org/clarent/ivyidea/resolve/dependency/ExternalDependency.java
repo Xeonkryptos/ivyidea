@@ -41,9 +41,17 @@ public abstract class ExternalDependency implements ResolvedDependency {
     private final Artifact artifact;
     private final File localFile;
 
+    private DependencyScope dependencyScope;
+
     public ExternalDependency(Artifact artifact, File localFile) {
         this.artifact = artifact;
         this.localFile = localFile;
+    }
+
+    public ExternalDependency(Artifact artifact, File localFile, DependencyScope dependencyScope) {
+        this.artifact = artifact;
+        this.localFile = localFile;
+        this.dependencyScope = dependencyScope;
     }
 
     public File getLocalFile() {
@@ -54,8 +62,12 @@ public abstract class ExternalDependency implements ResolvedDependency {
         return VfsUtil.getUrlForLibraryRoot(getLocalFile());
     }
 
-    protected DependencyScope getDependencyScope() {
-        return null;
+    public DependencyScope getDependencyScope() {
+        return dependencyScope;
+    }
+
+    public void setDependencyScope(DependencyScope dependencyScope) {
+        this.dependencyScope = dependencyScope;
     }
 
     @Override

@@ -28,11 +28,8 @@ import java.io.File;
 
 public class ExternalJarDependency extends ExternalDependency {
 
-    private final DependencyScope dependencyScope;
-
     public ExternalJarDependency(Artifact artifact, File externalArtifact, DependencyScope dependencyScope) {
-        super(artifact, externalArtifact);
-        this.dependencyScope = dependencyScope;
+        super(artifact, externalArtifact, dependencyScope);
     }
 
     protected String getTypeName() {
@@ -44,7 +41,7 @@ public class ExternalJarDependency extends ExternalDependency {
     }
 
     @Override
-    public DependencyScope getDependencyScope() {
-        return dependencyScope;
+    public int hashCode() {
+        return super.hashCode();
     }
 }

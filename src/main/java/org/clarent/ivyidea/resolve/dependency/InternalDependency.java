@@ -32,7 +32,8 @@ public class InternalDependency implements ResolvedDependency {
     private static final Logger LOGGER = Logger.getLogger(InternalDependency.class.getName());
 
     private final Module module;
-    private final DependencyScope dependencyScope;
+
+    private DependencyScope dependencyScope;
 
     public InternalDependency(Module module, DependencyScope dependencyScope) {
         this.module = module;
@@ -52,6 +53,14 @@ public class InternalDependency implements ResolvedDependency {
 
     public String getModuleName() {
         return module.getName();
+    }
+
+    public DependencyScope getDependencyScope() {
+        return dependencyScope;
+    }
+
+    public void setDependencyScope(DependencyScope dependencyScope) {
+        this.dependencyScope = dependencyScope;
     }
 
     @Override
