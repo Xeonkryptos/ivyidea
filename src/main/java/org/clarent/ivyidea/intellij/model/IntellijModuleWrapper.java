@@ -107,8 +107,10 @@ public class IntellijModuleWrapper implements AutoCloseable {
     public void addExternalDependency(ExternalDependency externalDependency, DependencyScope dependencyScope) {
         dependencyManipulationActions.add(() -> {
             Library library = libraryModels.getForExternalDependency(externalDependency);
-            library.getModifiableModel().addRoot(externalDependency.getUrlForLibraryRoot(), externalDependency.getType());
+            ModifiableModel modifiableModel = library.getModifiableModel();
+            modifiableModel.addRoot(externalDependency.getUrlForLibraryRoot(), externalDependency.getType());
             updateExternalDependencyScope(library, dependencyScope);
+            modifiableModel.commit();
         });
     }
 
