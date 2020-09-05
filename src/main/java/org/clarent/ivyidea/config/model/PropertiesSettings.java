@@ -18,6 +18,7 @@ package org.clarent.ivyidea.config.model;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * @author Guy Mahieu
@@ -26,12 +27,34 @@ public class PropertiesSettings {
     
     private List<String> propertyFiles = new ArrayList<>();
 
+    public PropertiesSettings() {}
+
+    public PropertiesSettings(PropertiesSettings copy) {
+        this.propertyFiles.addAll(copy.propertyFiles);
+    }
+
     public List<String> getPropertyFiles() {
         return propertyFiles;
     }
 
     public void setPropertyFiles(List<String> propertyFiles) {
-        this.propertyFiles = propertyFiles;
+        this.propertyFiles = new ArrayList<>(propertyFiles);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof PropertiesSettings)) {
+            return false;
+        }
+        PropertiesSettings that = (PropertiesSettings) o;
+        return Objects.equals(propertyFiles, that.propertyFiles);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(propertyFiles);
+    }
 }

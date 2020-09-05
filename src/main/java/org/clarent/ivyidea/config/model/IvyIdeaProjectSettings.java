@@ -16,12 +16,11 @@
 
 package org.clarent.ivyidea.config.model;
 
-/**
- * @author Guy Mahieu
- */
 public class IvyIdeaProjectSettings {
 
+    private boolean useApplicationSettings = true;
     private String ivyTemplateContent;
+    private GeneralIvyIdeaSettings generalIvyIdeaSettings = new GeneralIvyIdeaSettings();
 
     public String getIvyTemplateContent() {
         return ivyTemplateContent;
@@ -32,5 +31,25 @@ public class IvyIdeaProjectSettings {
             ivyTemplateContent = null;
         }
         this.ivyTemplateContent = ivyTemplateContent;
+    }
+
+    public GeneralIvyIdeaSettings getGeneralIvyIdeaSettings() {
+        return generalIvyIdeaSettings;
+    }
+
+    public void setGeneralIvyIdeaSettings(GeneralIvyIdeaSettings generalIvyIdeaSettings) {
+        this.generalIvyIdeaSettings = new GeneralIvyIdeaSettings(generalIvyIdeaSettings);
+    }
+
+    public boolean isUseApplicationSettings() {
+        return useApplicationSettings;
+    }
+
+    public void setUseApplicationSettings(boolean useApplicationSettings) {
+        this.useApplicationSettings = useApplicationSettings;
+    }
+
+    public void updateWith(GeneralIvyIdeaSettings generalIvyIdeaSettings) {
+        this.generalIvyIdeaSettings.updateWith(generalIvyIdeaSettings);
     }
 }

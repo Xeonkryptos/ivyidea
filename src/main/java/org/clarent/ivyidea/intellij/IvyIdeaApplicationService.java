@@ -42,10 +42,12 @@ public class IvyIdeaApplicationService implements PersistentStateComponent<IvyId
     }
 
     @NotNull
+    @Override
     public IvyIdeaApplicationSettings getState() {
         return internalState;
     }
 
+    @Override
     public void loadState(@NotNull IvyIdeaApplicationSettings state) {
         XmlSerializerUtil.copyBean(state, this.getState());
     }

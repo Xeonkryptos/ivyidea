@@ -33,6 +33,18 @@ import static org.clarent.ivyidea.config.model.ArtifactTypeSettings.DependencyCa
  */
 public class ArtifactTypeSettings implements PersistentStateComponent<ArtifactTypeSettings> {
 
+    private final Map<DependencyCategory, Set<String>> typesPerCategory = new HashMap<>();
+
+    public ArtifactTypeSettings() {}
+
+    public ArtifactTypeSettings(ArtifactTypeSettings copy) {
+        for (Map.Entry<DependencyCategory, Set<String>> entry : copy.typesPerCategory.entrySet()) {
+            DependencyCategory dependencyCategory = entry.getKey();
+            Set<String> types = entry.getValue();
+            this.typesPerCategory.put(dependencyCategory, new HashSet<>(types));
+        }
+    }
+
     public enum DependencyCategory {
         Sources("source", "src", "sources", "srcs"),
         Javadoc("javadoc", "doc", "docs", "apidoc", "apidocs", "documentation", "documents"),
@@ -48,8 +60,6 @@ public class ArtifactTypeSettings implements PersistentStateComponent<ArtifactTy
             return asList(defaultTypes);
         }
     }
-
-    private Map<DependencyCategory, Set<String>> typesPerCategory = new HashMap<DependencyCategory, Set<String>>();
 
     @Nullable
     public DependencyCategory getCategoryForType(String type) {
@@ -127,10 +137,12 @@ public class ArtifactTypeSettings implements PersistentStateComponent<ArtifactTy
         return sb.toString();
     }
 
+    @Override
     public ArtifactTypeSettings getState() {
         return this;
     }
 
+    @Override
     public void loadState(ArtifactTypeSettings state) {
         if (state == null) {
             state = new ArtifactTypeSettings();
@@ -162,5 +174,22 @@ public class ArtifactTypeSettings implements PersistentStateComponent<ArtifactTy
 
     public void setJavadocTypes(String types) {
         setTypesForCategory(Javadoc, types);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof ArtifactTypeSettings)) {
+            return false;
+        }
+        ArtifactTypeSettings that = (ArtifactTypeSettings) o;
+        return Objects.equals(typesPerCategory, that.typesPerCategory);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(typesPerCategory);
     }
 }

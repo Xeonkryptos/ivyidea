@@ -21,10 +21,28 @@ import com.intellij.facet.ui.FacetEditorContext;
 import com.intellij.facet.ui.FacetEditorTab;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.module.Module;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.DependencyScope;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.UserActivityWatcher;
+import java.io.File;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.logging.Logger;
+import javax.swing.JCheckBox;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JRadioButton;
+import javax.swing.event.DocumentEvent;
 import org.apache.ivy.Ivy;
 import org.apache.ivy.core.module.descriptor.Configuration;
 import org.apache.ivy.core.settings.IvySettings;
@@ -41,13 +59,6 @@ import org.clarent.ivyidea.util.StringUtils;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import javax.swing.*;
-import javax.swing.event.DocumentEvent;
-import java.io.File;
-import java.text.ParseException;
-import java.util.*;
-import java.util.logging.Logger;
 
 /**
  * @author Guy Mahieu
@@ -67,7 +78,7 @@ public class BasicSettingsTab extends FacetEditorTab {
     private JLabel lblIvyFileMessage;
     private JRadioButton rbnUseDefaultIvySettings;
     private JRadioButton rbnUseCustomIvySettings;
-    private FacetEditorContext editorContext;
+    private final FacetEditorContext editorContext;
     private final PropertiesSettingsTab propertiesSettingsTab;
     private boolean modified;
     private boolean foundConfigsBefore = false;
@@ -95,7 +106,7 @@ public class BasicSettingsTab extends FacetEditorTab {
         chkOverrideProjectIvySettings.addChangeListener(e -> updateIvySettingsUIState());
 
         chkOnlyResolveSpecificConfigs.addChangeListener(e -> updateConfigurationsTable());
-               
+
         rbnUseCustomIvySettings.addChangeListener(e -> updateIvySettingsFileTextfield());
     }
 
@@ -168,30 +179,33 @@ public class BasicSettingsTab extends FacetEditorTab {
     @NotNull
     private Ivy createIvyEngineForCurrentSettingsInUI() throws IvySettingsNotFoundException, IvySettingsFileReadException {
         final Module module = this.editorContext.getModule();
-        final IvySettings ivySettings = IvyIdeaConfigHelper.createConfiguredIvySettings(module, this.getIvySettingsFileNameForCurrentSettingsInUI(), getPropertiesForCurrentSettingsInUI());
+        Project project = module.getProject();
+        final IvySettings
+                ivySettings =
+                IvyIdeaConfigHelper.createConfiguredIvySettings(module, this.getIvySettingsFileNameForCurrentSettingsInUI(project), getPropertiesForCurrentSettingsInUI(project));
         return IvyUtil.createConfiguredIvyEngine(module, ivySettings);
     }
 
     @Nullable
-    private String getIvySettingsFileNameForCurrentSettingsInUI() throws IvySettingsNotFoundException {
+    private String getIvySettingsFileNameForCurrentSettingsInUI(Project project) throws IvySettingsNotFoundException {
         if (chkOverrideProjectIvySettings.isSelected()) {
-            if (rbnUseCustomIvySettings.isSelected())  {
+            if (rbnUseCustomIvySettings.isSelected()) {
                 return txtIvySettingsFile.getTextField().getText();
             }
         } else {
-            return IvyIdeaConfigHelper.getApplicationIvySettingsFile();
+            return IvyIdeaConfigHelper.getIvySettingsFile(project);
         }
         return null;
     }
 
-    private Properties getPropertiesForCurrentSettingsInUI() throws IvySettingsNotFoundException, IvySettingsFileReadException {
+    private Properties getPropertiesForCurrentSettingsInUI(Project project) throws IvySettingsNotFoundException, IvySettingsFileReadException {
         final List<String> propertiesFiles = new ArrayList<>(propertiesSettingsTab.getFileNames());
         // TODO: only include the project properties files if this option is chosen on the screen.
         //          for now this is not configurable yet - so it always is true
         boolean includeProjectProperties = true;
         //noinspection ConstantConditions
         if (includeProjectProperties) {
-            propertiesFiles.addAll(IvyIdeaConfigHelper.getPropertiesFiles());
+            propertiesFiles.addAll(IvyIdeaConfigHelper.getPropertiesFiles(project));
         }
         return IvyIdeaConfigHelper.loadProperties(editorContext.getModule(), propertiesFiles);
     }

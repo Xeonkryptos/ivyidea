@@ -5,7 +5,7 @@ plugins {
 }
 
 group 'org.clarent'
-version '1.1.1'
+version '1.1.2-SNAPSHOT'
 
 sourceCompatibility = 1.8
 
@@ -51,6 +51,11 @@ patchPluginXml {
     untilBuild ''
     changeNotes """      
         <p>
+            <strong>1.1.2</strong>
+            <ul>
+                <li>Fixed wrong configuration of ivy template text editors that restricted it from working correctly with multilines</li>
+                <li>Added feature to switch between global application ivy settings or project-specific one (in General tab in the Settings dialog of IntelliJ IDEA)</li>
+            </ul>
             <strong>1.1.0</strong>
             <ul>
                 <li>Removing internal module references when the reference in ivy.xml is gone</li>

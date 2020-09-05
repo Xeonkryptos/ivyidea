@@ -164,6 +164,6 @@ public class IvyUtil {
     }
 
     private static void registerConsoleLogger(final Ivy ivy, final Project project) {
-        ivy.getLoggerEngine().pushLogger(new ConsoleViewMessageLogger(IntellijUtils.getConsoleView(project)));
+        ivy.getLoggerEngine().pushLogger(new ConsoleViewMessageLogger(project, IntellijUtils.getConsoleView(project)));
     }
 }

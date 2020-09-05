@@ -17,7 +17,19 @@
 package org.clarent.ivyidea.resolve;
 
 import com.intellij.openapi.module.Module;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.DependencyScope;
+import java.io.File;
+import java.io.IOException;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Logger;
 import org.apache.ivy.Ivy;
 import org.apache.ivy.core.module.descriptor.Artifact;
 import org.apache.ivy.core.module.descriptor.Configuration;
@@ -43,12 +55,6 @@ import org.clarent.ivyidea.resolve.problem.ResolveProblem;
 import org.clarent.ivyidea.resolve.sort.ConfigurationGraph;
 import org.clarent.ivyidea.resolve.sort.ConfigurationGraphSorter;
 import org.clarent.ivyidea.resolve.sort.ConfigurationNode;
-
-import java.io.File;
-import java.io.IOException;
-import java.text.ParseException;
-import java.util.*;
-import java.util.logging.Logger;
 
 /**
  * @author Guy Mahieu
@@ -162,13 +168,14 @@ class DependencyResolver {
                     DependencyScope targetDependencyScope = getDependencyScopeFor(moduleDependency.getName(), configurationReport.getConfiguration());
                     addInternalDependency(moduleDependency, targetDependencyScope);
                 } else {
+                    Project project = module.getProject();
                     String dependencyName = dependency.getOrganisation() + ":" + dependency.getName() + ":" + dependency.getRevision();
                     DependencyScope targetDependencyScope = getDependencyScopeFor(dependencyName, configurationReport.getConfiguration());
                     final ArtifactDownloadReport[] artifactDownloadReports = configurationReport.getDownloadReports(dependency);
                     for (ArtifactDownloadReport artifactDownloadReport : artifactDownloadReports) {
                         final Artifact artifact = artifactDownloadReport.getArtifact();
                         final File artifactFile = artifactDownloadReport.getLocalFile();
-                        addExternalDependency(dependencyName, artifact, artifactFile, targetDependencyScope);
+                        addExternalDependency(dependencyName, project, artifact, artifactFile, targetDependencyScope);
                     }
 
                     // If activated manually download any missing javadoc or source dependencies,
@@ -176,8 +183,8 @@ class DependencyResolver {
                     // This means that dependencies in ivy.xml don't need to explicitly include configurations
                     // for javadoc or sources, just to ensure that the plugin can see them. The plugin will
                     // get all javadocs and sources it can find for each dependency.
-                    final boolean attachSources = IvyIdeaConfigHelper.alwaysAttachSources();
-                    final boolean attachJavadocs = IvyIdeaConfigHelper.alwaysAttachJavadocs();
+                    final boolean attachSources = IvyIdeaConfigHelper.alwaysAttachSources(project);
+                    final boolean attachJavadocs = IvyIdeaConfigHelper.alwaysAttachJavadocs(project);
                     if (attachSources || attachJavadocs) {
                         final IvyNode node = configurationReport.getDependency(dependency);
                         final ModuleDescriptor md = node.getDescriptor();
@@ -185,14 +192,14 @@ class DependencyResolver {
                         for (Artifact artifact : artifacts) {
                             // TODO: if sources are found, don't bother attaching javadoc?
                             // That way, IDEA will generate the javadoc and resolve links to other javadocs
-                            if ((attachSources && isSource(artifact)) || (attachJavadocs && isJavadoc(artifact))) {
+                            if ((attachSources && isSource(project, artifact)) || (attachJavadocs && isJavadoc(project, artifact))) {
                                 if (resolveReport.getArtifacts().contains(artifact)) {
                                     continue; // already resolved, ignore.
                                 }
 
                                 // try to download
                                 ArtifactDownloadReport adr = ivy.getResolveEngine().download(artifact, new DownloadOptions());
-                                addExternalDependency(dependencyName, artifact, adr.getLocalFile(), null);
+                                addExternalDependency(dependencyName, project, artifact, adr.getLocalFile(), null);
                             }
                         }
                     }
@@ -201,26 +208,26 @@ class DependencyResolver {
         }
     }
 
-    private void addExternalDependency(String dependencyName, Artifact artifact, File artifactFile, DependencyScope dependencyScope) {
-        ExternalDependency externalDependency = ExternalDependencyFactory.getInstance().createExternalDependency(artifact, artifactFile, dependencyScope);
+    private void addExternalDependency(String dependencyName, Project project, Artifact artifact, File artifactFile, DependencyScope dependencyScope) {
+        ExternalDependency externalDependency = ExternalDependencyFactory.getInstance().createExternalDependency(project, artifact, artifactFile, dependencyScope);
         if (externalDependency == null) {
             resolveProblems.add(new ResolveProblem(artifact.getModuleRevisionId().toString(),
-                    "Unrecognized artifact type: " + artifact.getType() + ", will not add this as a dependency in IntelliJ.",
-                    null));
+                                                   "Unrecognized artifact type: " + artifact.getType() + ", will not add this as a dependency in IntelliJ.",
+                                                   null));
             LOGGER.warning("Artifact of unrecognized type " + artifact.getType() + " found, *not* adding as a dependency.");
         } else if (externalDependency.isMissing()) {
-            resolveProblems.add(new ResolveProblem(artifact.getModuleRevisionId().toString(),"File not found: " + externalDependency.getLocalFile().getAbsolutePath()));
+            resolveProblems.add(new ResolveProblem(artifact.getModuleRevisionId().toString(), "File not found: " + externalDependency.getLocalFile().getAbsolutePath()));
         } else {
             addExternalDependency(dependencyName, externalDependency);
         }
     }
 
-    private boolean isSource(Artifact artifact) {
-        return ArtifactTypeSettings.DependencyCategory.Sources == ExternalDependencyFactory.determineCategory(artifact);
+    private boolean isSource(Project project, Artifact artifact) {
+        return ArtifactTypeSettings.DependencyCategory.Sources == ExternalDependencyFactory.determineCategory(project, artifact);
     }
 
-    private boolean isJavadoc(Artifact artifact) {
-        return ArtifactTypeSettings.DependencyCategory.Javadoc == ExternalDependencyFactory.determineCategory(artifact);
+    private boolean isJavadoc(Project project, Artifact artifact) {
+        return ArtifactTypeSettings.DependencyCategory.Javadoc == ExternalDependencyFactory.determineCategory(project, artifact);
     }
 
     private void registerProblems(ConfigurationResolveReport configurationReport, IntellijModuleDependencies moduleDependencies) {
@@ -232,9 +239,7 @@ class DependencyResolver {
                 DependencyScope targetDependencyScope = getDependencyScopeFor(moduleDependency.getName(), configuration);
                 addInternalDependency(moduleDependency, targetDependencyScope);
             } else {
-                resolveProblems.add(new ResolveProblem(unresolvedDependency.getId().toString(),
-                        unresolvedDependency.getProblemMessage(),
-                        unresolvedDependency.getProblem()));
+                resolveProblems.add(new ResolveProblem(unresolvedDependency.getId().toString(), unresolvedDependency.getProblemMessage(), unresolvedDependency.getProblem()));
                 LOGGER.info("DEPENDENCY PROBLEM: " + unresolvedDependency.getId() + ": " + unresolvedDependency.getProblemMessage());
             }
         }
@@ -261,11 +266,12 @@ class DependencyResolver {
     }
 
     private boolean isModuleToBeHandledAsInternalDependency(IntellijModuleDependencies moduleDependencies, ModuleRevisionId dependency) {
-        boolean detectDependenciesOnOtherModulesWhileResolving = IvyIdeaConfigHelper.detectDependenciesOnOtherModulesWhileResolving();
-        boolean detectDependenciesOnOtherModulesOfSameVersionWhileResolving = IvyIdeaConfigHelper.detectDependenciesOnOtherModulesWhileResolvingOfSameVersion();
-        return detectDependenciesOnOtherModulesWhileResolving && moduleDependencies.isInternalIntellijModuleDependency(
-                dependency.getModuleId()) && (!detectDependenciesOnOtherModulesOfSameVersionWhileResolving || moduleDependencies
-                .isInternalIntellijModuleDependencyWithSameRevision(dependency));
+        Project project = moduleDependencies.getModule().getProject();
+        boolean detectDependenciesOnOtherModulesWhileResolving = IvyIdeaConfigHelper.detectDependenciesOnOtherModulesWhileResolving(project);
+        boolean detectDependenciesOnOtherModulesOfSameVersionWhileResolving = IvyIdeaConfigHelper.detectDependenciesOnOtherModulesWhileResolvingOfSameVersion(project);
+        return detectDependenciesOnOtherModulesWhileResolving &&
+               moduleDependencies.isInternalIntellijModuleDependency(dependency.getModuleId()) &&
+               (!detectDependenciesOnOtherModulesOfSameVersionWhileResolving || moduleDependencies.isInternalIntellijModuleDependencyWithSameRevision(dependency));
     }
 
     private DependencyScope getDependencyScopeFor(String dependencyName, String currentConfiguration) {

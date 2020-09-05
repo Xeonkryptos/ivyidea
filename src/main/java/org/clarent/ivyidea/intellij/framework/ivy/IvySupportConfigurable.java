@@ -23,15 +23,6 @@ import com.intellij.ide.fileTemplates.FileTemplateUtil;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.roots.ModifiableModelsProvider;
 import com.intellij.openapi.roots.ModifiableRootModel;
-import org.clarent.ivyidea.config.IvyIdeaConfigHelper;
-import org.clarent.ivyidea.config.model.IvyIdeaApplicationSettings;
-import org.clarent.ivyidea.config.model.IvyIdeaProjectSettings;
-import org.clarent.ivyidea.intellij.facet.IvyIdeaFacet;
-import org.clarent.ivyidea.intellij.facet.IvyIdeaFacetType;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import javax.swing.*;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -41,6 +32,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.JComponent;
+import org.clarent.ivyidea.config.IvyIdeaConfigHelper;
+import org.clarent.ivyidea.intellij.facet.IvyIdeaFacet;
+import org.clarent.ivyidea.intellij.facet.IvyIdeaFacetType;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Xeonkryptos
@@ -64,23 +61,15 @@ public class IvySupportConfigurable extends FrameworkSupportInModuleConfigurable
         Map<String, Object> templateAttributes = new HashMap<>();
         templateAttributes.put("MODULE_NAME", module.getName());
 
-        IvyIdeaProjectSettings projectConfigSettings = IvyIdeaConfigHelper.getProjectConfig(module.getProject());
-        String ivyTemplateContent = projectConfigSettings.getIvyTemplateContent();
-        if (ivyTemplateContent == null) {
-            IvyIdeaApplicationSettings ivyIdeaApplicationSettings = IvyIdeaConfigHelper.getApplicationConfig();
-            ivyTemplateContent = ivyIdeaApplicationSettings.getIvyTemplateContent();
-        }
+        String ivyTemplateContent = IvyIdeaConfigHelper.getIvyTemplateContent(module.getProject());
         if (ivyTemplateContent != null) {
             try (BufferedWriter writer = Files.newBufferedWriter(ivyTargetFile)) {
-                String finalizedProjectFileContent = FileTemplateUtil.mergeTemplate(templateAttributes,
-                        ivyTemplateContent,
-                        true);
+                String finalizedProjectFileContent = FileTemplateUtil.mergeTemplate(templateAttributes, ivyTemplateContent, true);
                 writer.write(finalizedProjectFileContent);
 
                 FacetManager facetManager = FacetManager.getInstance(module);
                 ModifiableFacetModel modifiableModel = facetManager.createModifiableModel();
-                IvyIdeaFacet ivyIdeaFacet = facetManager.createFacet(IvyIdeaFacetType.getInstance(), IvyIdeaFacetType.STRING_ID,
-                        null);
+                IvyIdeaFacet ivyIdeaFacet = facetManager.createFacet(IvyIdeaFacetType.getInstance(), IvyIdeaFacetType.STRING_ID, null);
                 ivyIdeaFacet.getConfiguration().setIvyFile(ivyTargetFile.toAbsolutePath().toString());
                 modifiableModel.addFacet(ivyIdeaFacet);
                 modifiableModel.commit();

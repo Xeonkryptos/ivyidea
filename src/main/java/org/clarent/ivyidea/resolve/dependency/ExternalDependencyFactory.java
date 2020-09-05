@@ -16,6 +16,7 @@
 
 package org.clarent.ivyidea.resolve.dependency;
 
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.DependencyScope;
 import org.apache.ivy.core.module.descriptor.Artifact;
 import org.clarent.ivyidea.config.IvyIdeaConfigHelper;
@@ -37,8 +38,8 @@ public class ExternalDependencyFactory {
     }
 
     @Nullable
-    public ExternalDependency createExternalDependency(@NotNull Artifact artifact, @Nullable File file, @Nullable DependencyScope dependencyScope) {
-        final ArtifactTypeSettings.DependencyCategory category = determineCategory(artifact);
+    public ExternalDependency createExternalDependency(@NotNull Project project, @NotNull Artifact artifact, @Nullable File file, @Nullable DependencyScope dependencyScope) {
+        final ArtifactTypeSettings.DependencyCategory category = determineCategory(project, artifact);
         if (category != null) {
             switch (category) {
                 case Classes:
@@ -53,8 +54,8 @@ public class ExternalDependencyFactory {
     }
 
     @Nullable
-    public static ArtifactTypeSettings.DependencyCategory determineCategory(@NotNull Artifact artifact) {
-        final ArtifactTypeSettings typeSettings = IvyIdeaConfigHelper.getArtifactTypeSettings();
+    public static ArtifactTypeSettings.DependencyCategory determineCategory(@NotNull Project project, @NotNull Artifact artifact) {
+        final ArtifactTypeSettings typeSettings = IvyIdeaConfigHelper.getArtifactTypeSettings(project);
         if (typeSettings == null) {
             return null;
         }
