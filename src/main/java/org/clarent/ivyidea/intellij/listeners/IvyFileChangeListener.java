@@ -57,6 +57,7 @@ public class IvyFileChangeListener implements BulkFileListener {
                 .filter(event -> event.isValid() && event.isFromSave())
                 .filter(event -> event instanceof VFileContentChangeEvent)
                 .map(event -> ((VFileContentChangeEvent) event).getFile())
+                .filter(virtualFile -> "ivy.xml".equals(virtualFile.getName()))
                 .map(virtualFile -> {
                     for (ProjectFileIndex fileIndex : fileIndices) {
                         if (fileIndex.isInContent(virtualFile)) {
