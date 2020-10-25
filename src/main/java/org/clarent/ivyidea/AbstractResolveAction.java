@@ -58,7 +58,7 @@ public abstract class AbstractResolveAction extends AnAction {
             String configsForModule;
             if (ivyIdeaFacetConfiguration.isOnlyResolveSelectedConfigs()) {
                 final Set<String> configs = ivyIdeaFacetConfiguration.getConfigsToResolve();
-                if (configs == null || configs.size() == 0) {
+                if (configs == null || configs.isEmpty()) {
                     configsForModule = "[No configurations selected!]";
                 } else {
                     configsForModule = configs.toString();

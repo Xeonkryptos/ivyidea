@@ -27,6 +27,7 @@ import org.clarent.ivyidea.exception.IvyFileReadException;
 import org.clarent.ivyidea.exception.IvySettingsFileReadException;
 import org.clarent.ivyidea.exception.IvySettingsNotFoundException;
 import org.clarent.ivyidea.intellij.IntellijUtils;
+import org.clarent.ivyidea.intellij.listeners.IvyFileChangeListener;
 import org.clarent.ivyidea.intellij.task.IvyIdeaResolveBackgroundTask;
 import org.clarent.ivyidea.ivy.IvyManager;
 import org.clarent.ivyidea.resolve.IntellijDependencyResolver;
@@ -59,7 +60,17 @@ public class ResolveForActiveModuleAction extends AbstractResolveAction {
                     getProgressMonitorThread().setIvy(ivyManager.getIvy(module));
 
                     final IntellijDependencyResolver resolver = new IntellijDependencyResolver(ivyManager);
-                    resolver.resolve(module);
+                    try {
+                        resolver.resolve(module);
+                    } catch (IvyFileReadException | IvySettingsFileReadException exc) {
+                        Boolean autoResolve = IvyFileChangeListener.AUTO_RESOLVE.getData(e.getDataContext());
+                        // Don't throw any ivy relevant exceptions when triggered by auto resolving. Typically, those exceptions are errors created by a not finalized ivy.xml file
+                        if (Boolean.TRUE.equals(autoResolve)) {
+                            reportProblems(module, resolver.getProblems());
+                            return;
+                        }
+                        throw exc;
+                    }
                     updateIntellijModel(module, resolver.getExternalDependencies(), resolver.getInternalDependencies());
                     reportProblems(module, resolver.getProblems());
                 }

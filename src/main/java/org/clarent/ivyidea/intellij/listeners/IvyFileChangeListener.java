@@ -37,6 +37,8 @@ import java.util.*;
  */
 public class IvyFileChangeListener implements BulkFileListener {
 
+    public static final DataKey<Boolean> AUTO_RESOLVE = DataKey.create("AUTO_RESOLVE");
+
     private final ProjectManager projectManager = ProjectManager.getInstance();
     private final ActionManager am = ActionManager.getInstance();
 
@@ -76,7 +78,8 @@ public class IvyFileChangeListener implements BulkFileListener {
         for (Module updatableModule : updatableModules) {
             Map<String, Object> dataContextData = new HashMap<>();
             dataContextData.put(LangDataKeys.MODULE.getName(), updatableModule);
-            dataContextData.put(LangDataKeys.PROJECT.getName(), updatableModule.getProject());
+            dataContextData.put(CommonDataKeys.PROJECT.getName(), updatableModule.getProject());
+            dataContextData.put(AUTO_RESOLVE.getName(), Boolean.TRUE);
             DataContext dataContext = SimpleDataContext.getSimpleContext(dataContextData, null);
             Presentation presentation = new Presentation();
             presentation.setText(updatableModule.getName());

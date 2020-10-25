@@ -17,12 +17,14 @@
 package org.clarent.ivyidea;
 
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.PlatformDataKeys;
+import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
+import java.util.ArrayList;
+import java.util.Collection;
 import org.clarent.ivyidea.exception.IvyFileReadException;
 import org.clarent.ivyidea.exception.IvySettingsFileReadException;
 import org.clarent.ivyidea.exception.IvySettingsNotFoundException;
@@ -31,9 +33,6 @@ import org.clarent.ivyidea.intellij.task.IvyIdeaResolveBackgroundTask;
 import org.clarent.ivyidea.ivy.IvyManager;
 import org.clarent.ivyidea.resolve.IntellijDependencyResolver;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.ArrayList;
-import java.util.Collection;
 
 /**
  * Action to resolve the dependencies for all modules that have an IvyIDEA facet configured.
@@ -46,7 +45,7 @@ public class ResolveForAllModulesAction extends AbstractResolveAction {
     public void actionPerformed(AnActionEvent e) {
         FileDocumentManager.getInstance().saveAllDocuments();
 
-        final Project project = PlatformDataKeys.PROJECT.getData(e.getDataContext());
+        final Project project = CommonDataKeys.PROJECT.getData(e.getDataContext());
         ProgressManager.getInstance().run(new IvyIdeaResolveBackgroundTask(project, e) {
             @Override
             public void doResolve(final @NotNull ProgressIndicator indicator) throws IvySettingsNotFoundException, IvyFileReadException, IvySettingsFileReadException {
