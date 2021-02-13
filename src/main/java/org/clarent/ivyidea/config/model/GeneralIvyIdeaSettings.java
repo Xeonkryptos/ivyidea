@@ -18,8 +18,10 @@ package org.clarent.ivyidea.config.model;
 
 import com.intellij.openapi.roots.DependencyScope;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import org.apache.ivy.core.resolve.ResolveOptions;
 import org.clarent.ivyidea.logging.IvyLogLevel;
 
@@ -42,6 +44,7 @@ public class GeneralIvyIdeaSettings {
     private Map<String, DependencyScope> dependencyScopes = new HashMap<>();
     private ArtifactTypeSettings artifactTypeSettings = new ArtifactTypeSettings();
     private PropertiesSettings propertiesSettings = new PropertiesSettings();
+    private Set<String> ignoredConfigs = new LinkedHashSet<>();
 
     public GeneralIvyIdeaSettings() {
     }
@@ -61,6 +64,7 @@ public class GeneralIvyIdeaSettings {
         dependencyScopes = new HashMap<>(copy.dependencyScopes);
         artifactTypeSettings = new ArtifactTypeSettings(copy.artifactTypeSettings);
         propertiesSettings = new PropertiesSettings(copy.propertiesSettings);
+        ignoredConfigs = new LinkedHashSet<>(copy.ignoredConfigs);
     }
 
     public void updateWith(GeneralIvyIdeaSettings copy) {
@@ -78,6 +82,7 @@ public class GeneralIvyIdeaSettings {
         setDependencyScopes(new HashMap<>(copy.dependencyScopes));
         setArtifactTypeSettings(new ArtifactTypeSettings(copy.artifactTypeSettings));
         setPropertiesSettings(new PropertiesSettings(copy.propertiesSettings));
+        setIgnoredConfigs(new LinkedHashSet<>(copy.ignoredConfigs));
     }
 
     public String getIvySettingsFile() {
@@ -192,6 +197,14 @@ public class GeneralIvyIdeaSettings {
         this.dependencyScopes = new HashMap<>(dependencyScopes);
     }
 
+    public Set<String> getIgnoredConfigs() {
+        return ignoredConfigs;
+    }
+
+    public void setIgnoredConfigs(Set<String> ignoredConfigs) {
+        this.ignoredConfigs = ignoredConfigs;
+    }
+
     public void updateResolveOptions(ResolveOptions options) {
         options.setValidate(isValidateIvyFiles());
         options.setTransitive(isResolveTransitively());
@@ -220,7 +233,8 @@ public class GeneralIvyIdeaSettings {
                Objects.equals(ivyLogLevelThreshold, that.ivyLogLevelThreshold) &&
                Objects.equals(dependencyScopes, that.dependencyScopes) &&
                Objects.equals(artifactTypeSettings, that.artifactTypeSettings) &&
-               Objects.equals(propertiesSettings, that.propertiesSettings);
+               Objects.equals(propertiesSettings, that.propertiesSettings) &&
+               Objects.equals(ignoredConfigs, that.ignoredConfigs);
     }
 
     @Override
@@ -238,6 +252,7 @@ public class GeneralIvyIdeaSettings {
                             ivyLogLevelThreshold,
                             dependencyScopes,
                             artifactTypeSettings,
-                            propertiesSettings);
+                            propertiesSettings,
+                            ignoredConfigs);
     }
 }

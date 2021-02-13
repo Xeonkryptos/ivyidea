@@ -27,10 +27,13 @@ import com.intellij.ui.EditorTextField;
 import com.intellij.ui.UserActivityWatcher;
 import com.intellij.uiDesigner.core.GridConstraints;
 import java.awt.BorderLayout;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
@@ -91,6 +94,7 @@ public class IvyIdeaSettingsPanel {
     private JPanel ivyProjectTemplatePanel;
     private JPanel ivyApplicationTemplatePanel;
     private JRadioButton useIvyDefaultSettingsRadioButton;
+    private JTextField txtIgnoredConfigs;
 
     private boolean resettingStates = false;
     private boolean applyingStates = false;
@@ -226,6 +230,13 @@ public class IvyIdeaSettingsPanel {
 
         String ivyProjectTemplateContent = txtIvyProjectTemplateEditor.getText();
         projectSettingsState.setIvyTemplateContent(ivyProjectTemplateContent);
+
+        String[] ignoredConfigs = txtIgnoredConfigs.getText().split("\\s*,\\s*");
+        Set<String> ignoredConfigsSet = new LinkedHashSet<>();
+        if (ignoredConfigs.length > 0) {
+            ignoredConfigsSet.addAll(Arrays.asList(ignoredConfigs));
+        }
+        uiCurrentSettingsState.setIgnoredConfigs(ignoredConfigsSet);
         applyingStates = false;
     }
 
@@ -301,6 +312,7 @@ public class IvyIdeaSettingsPanel {
         updateDependencyScopeTextField(textScopeRuntime, txtDependencyScopeRuntime);
         updateDependencyScopeTextField(textScopeProvided, txtDependencyScopeProvided);
         updateDependencyScopeTextField(textScopeTest, txtDependencyScopeTest);
+        txtIgnoredConfigs.setText(String.join(", ", uiCurrentSettingsState.getIgnoredConfigs()));
         resettingStates = false;
     }
 
