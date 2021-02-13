@@ -82,7 +82,7 @@ public class IvyIdeaConfigHelper {
             return Collections.unmodifiableSet(moduleConfiguration.getConfigsToResolve());
         } else {
             GeneralIvyIdeaSettings currentConfig = getCurrentConfig(module.getProject());
-            return currentConfig.getIgnoredConfigs();
+            return currentConfig.getResolveOnlyConfigs();
         }
     }
 

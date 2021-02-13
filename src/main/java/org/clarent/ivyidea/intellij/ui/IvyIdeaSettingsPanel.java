@@ -94,7 +94,7 @@ public class IvyIdeaSettingsPanel {
     private JPanel ivyProjectTemplatePanel;
     private JPanel ivyApplicationTemplatePanel;
     private JRadioButton useIvyDefaultSettingsRadioButton;
-    private JTextField txtIgnoredConfigs;
+    private JTextField txtResolveOnlyConfigs;
 
     private boolean resettingStates = false;
     private boolean applyingStates = false;
@@ -231,12 +231,12 @@ public class IvyIdeaSettingsPanel {
         String ivyProjectTemplateContent = txtIvyProjectTemplateEditor.getText();
         projectSettingsState.setIvyTemplateContent(ivyProjectTemplateContent);
 
-        String[] ignoredConfigs = txtIgnoredConfigs.getText().split("\\s*,\\s*");
-        Set<String> ignoredConfigsSet = new LinkedHashSet<>();
-        if (ignoredConfigs.length > 0) {
-            ignoredConfigsSet.addAll(Arrays.asList(ignoredConfigs));
+        String[] resolveOnlyConfigs = txtResolveOnlyConfigs.getText().split("\\s*,\\s*");
+        Set<String> resolveOnlyConfigsSet = new LinkedHashSet<>();
+        if (resolveOnlyConfigs.length > 0) {
+            resolveOnlyConfigsSet.addAll(Arrays.asList(resolveOnlyConfigs));
         }
-        uiCurrentSettingsState.setIgnoredConfigs(ignoredConfigsSet);
+        uiCurrentSettingsState.setResolveOnlyConfigs(resolveOnlyConfigsSet);
         applyingStates = false;
     }
 
@@ -312,7 +312,7 @@ public class IvyIdeaSettingsPanel {
         updateDependencyScopeTextField(textScopeRuntime, txtDependencyScopeRuntime);
         updateDependencyScopeTextField(textScopeProvided, txtDependencyScopeProvided);
         updateDependencyScopeTextField(textScopeTest, txtDependencyScopeTest);
-        txtIgnoredConfigs.setText(String.join(", ", uiCurrentSettingsState.getIgnoredConfigs()));
+        txtResolveOnlyConfigs.setText(String.join(", ", uiCurrentSettingsState.getResolveOnlyConfigs()));
         resettingStates = false;
     }
 

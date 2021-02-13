@@ -44,7 +44,7 @@ public class GeneralIvyIdeaSettings {
     private Map<String, DependencyScope> dependencyScopes = new HashMap<>();
     private ArtifactTypeSettings artifactTypeSettings = new ArtifactTypeSettings();
     private PropertiesSettings propertiesSettings = new PropertiesSettings();
-    private Set<String> ignoredConfigs = new LinkedHashSet<>();
+    private Set<String> resolveOnlyConfigs = new LinkedHashSet<>();
 
     public GeneralIvyIdeaSettings() {
     }
@@ -64,7 +64,7 @@ public class GeneralIvyIdeaSettings {
         dependencyScopes = new HashMap<>(copy.dependencyScopes);
         artifactTypeSettings = new ArtifactTypeSettings(copy.artifactTypeSettings);
         propertiesSettings = new PropertiesSettings(copy.propertiesSettings);
-        ignoredConfigs = new LinkedHashSet<>(copy.ignoredConfigs);
+        resolveOnlyConfigs = new LinkedHashSet<>(copy.resolveOnlyConfigs);
     }
 
     public void updateWith(GeneralIvyIdeaSettings copy) {
@@ -82,7 +82,7 @@ public class GeneralIvyIdeaSettings {
         setDependencyScopes(new HashMap<>(copy.dependencyScopes));
         setArtifactTypeSettings(new ArtifactTypeSettings(copy.artifactTypeSettings));
         setPropertiesSettings(new PropertiesSettings(copy.propertiesSettings));
-        setIgnoredConfigs(new LinkedHashSet<>(copy.ignoredConfigs));
+        setResolveOnlyConfigs(new LinkedHashSet<>(copy.resolveOnlyConfigs));
     }
 
     public String getIvySettingsFile() {
@@ -197,12 +197,12 @@ public class GeneralIvyIdeaSettings {
         this.dependencyScopes = new HashMap<>(dependencyScopes);
     }
 
-    public Set<String> getIgnoredConfigs() {
-        return ignoredConfigs;
+    public Set<String> getResolveOnlyConfigs() {
+        return resolveOnlyConfigs;
     }
 
-    public void setIgnoredConfigs(Set<String> ignoredConfigs) {
-        this.ignoredConfigs = ignoredConfigs;
+    public void setResolveOnlyConfigs(Set<String> resolveOnlyConfigs) {
+        this.resolveOnlyConfigs = resolveOnlyConfigs;
     }
 
     public void updateResolveOptions(ResolveOptions options) {
@@ -234,7 +234,7 @@ public class GeneralIvyIdeaSettings {
                Objects.equals(dependencyScopes, that.dependencyScopes) &&
                Objects.equals(artifactTypeSettings, that.artifactTypeSettings) &&
                Objects.equals(propertiesSettings, that.propertiesSettings) &&
-               Objects.equals(ignoredConfigs, that.ignoredConfigs);
+               Objects.equals(resolveOnlyConfigs, that.resolveOnlyConfigs);
     }
 
     @Override
@@ -252,7 +252,6 @@ public class GeneralIvyIdeaSettings {
                             ivyLogLevelThreshold,
                             dependencyScopes,
                             artifactTypeSettings,
-                            propertiesSettings,
-                            ignoredConfigs);
+                            propertiesSettings, resolveOnlyConfigs);
     }
 }

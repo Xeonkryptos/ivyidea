@@ -346,11 +346,11 @@
                     <properties>
                       <enabled value="true"/>
                       <labelFor value="293f3"/>
-                      <text value="Ignored configs"/>
-                      <toolTipText value="Comma-separated list of ivy configurations that gets globally ignored, when no custom configurations for a specific project is done"/>
+                      <text value="Resolve only"/>
+                      <toolTipText value="Comma-separated list of ivy configurations to resolve for every configured project as long as they don't have a custom configuration"/>
                     </properties>
                   </component>
-                  <component id="688d9" class="javax.swing.JTextField" binding="txtIgnoredConfigs">
+                  <component id="688d9" class="javax.swing.JTextField" binding="txtResolveOnlyConfigs">
                     <constraints>
                       <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false">
                         <preferred-size width="150" height="-1"/>
@@ -358,7 +358,7 @@
                     </constraints>
                     <properties>
                       <text value=""/>
-                      <toolTipText value="Comma-separated list of ivy configurations that gets globally ignored, when no custom configurations for a specific project is done"/>
+                      <toolTipText value="Comma-separated list of ivy configurations to resolve for every configured project as long as they don't have a custom configuration"/>
                     </properties>
                   </component>
                   <component id="1967d" class="javax.swing.JComboBox" binding="ivyLogLevelComboBox" custom-create="true">
