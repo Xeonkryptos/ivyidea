@@ -19,7 +19,9 @@ package org.clarent.ivyidea.config;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectUtil;
 import com.intellij.openapi.roots.DependencyScope;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.util.net.HttpConfigurable;
 import org.apache.ivy.core.resolve.ResolveOptions;
 import org.apache.ivy.core.settings.IvySettings;
@@ -79,7 +81,8 @@ public class IvyIdeaConfigHelper {
         if (moduleConfiguration != null && moduleConfiguration.isOnlyResolveSelectedConfigs() && moduleConfiguration.getConfigsToResolve() != null) {
             return Collections.unmodifiableSet(moduleConfiguration.getConfigsToResolve());
         } else {
-            return Collections.emptySet();
+            GeneralIvyIdeaSettings currentConfig = getCurrentConfig(module.getProject());
+            return currentConfig.getIgnoredConfigs();
         }
     }
 
@@ -306,8 +309,9 @@ public class IvyIdeaConfigHelper {
     }
 
     private static void fillDefaultBaseDir(IvySettings ivySettings, Module module) {
-        final File moduleFileFolder = new File(module.getModuleFilePath()).getParentFile();
-        if (moduleFileFolder != null) {
+        VirtualFile moduleDirVirtualFile = ProjectUtil.guessModuleDir(module);
+        if (moduleDirVirtualFile != null) {
+            final File moduleFileFolder = new File(moduleDirVirtualFile.getPath()).getParentFile();
             ivySettings.setBaseDir(moduleFileFolder.getAbsoluteFile());
         }
     }
