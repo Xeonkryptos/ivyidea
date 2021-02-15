@@ -23,6 +23,23 @@ import com.intellij.openapi.project.ProjectUtil;
 import com.intellij.openapi.roots.DependencyScope;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.util.net.HttpConfigurable;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.net.URL;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.apache.ivy.Ivy;
+import org.apache.ivy.core.module.descriptor.Configuration;
 import org.apache.ivy.core.resolve.ResolveOptions;
 import org.apache.ivy.core.settings.IvySettings;
 import org.clarent.ivyidea.config.model.ArtifactTypeSettings;
@@ -35,18 +52,13 @@ import org.clarent.ivyidea.intellij.IvyIdeaApplicationService;
 import org.clarent.ivyidea.intellij.IvyIdeaProjectService;
 import org.clarent.ivyidea.intellij.facet.config.FacetPropertiesSettings;
 import org.clarent.ivyidea.intellij.facet.config.IvyIdeaFacetConfiguration;
+import org.clarent.ivyidea.ivy.IvyManager;
+import org.clarent.ivyidea.ivy.IvyUtil;
 import org.clarent.ivyidea.logging.IvyLogLevel;
 import org.clarent.ivyidea.util.CollectionUtils;
 import org.clarent.ivyidea.util.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.net.URL;
-import java.text.ParseException;
-import java.util.*;
 
 /**
  * Handles retrieval of settings from the configuration.
@@ -59,12 +71,20 @@ import java.util.*;
 public class IvyIdeaConfigHelper {
 
     @NotNull
-    public static ResolveOptions createResolveOptions(Module module) {
+    public static ResolveOptions createResolveOptions(Module module, IvyManager ivyManager) throws IvySettingsFileReadException, IvySettingsNotFoundException, ParseException {
         ResolveOptions options = new ResolveOptions();
         getCurrentConfig(module.getProject()).updateResolveOptions(options);
         final Set<String> configsToResolve = getConfigurationsToResolve(module);
         if (!configsToResolve.isEmpty()) {
-            options.setConfs(configsToResolve.toArray(new String[0]));
+            File ivyFile = IvyUtil.getIvyFile(module);
+            Ivy ivy = ivyManager.getIvy(module);
+            if (ivyFile != null) {
+                Set<Configuration> configurations = IvyUtil.loadConfigurations(ivyFile.getAbsolutePath(), ivy);
+                Set<String> availableConfigurations = configurations.stream().map(Configuration::getName).collect(Collectors.toSet());
+                Set<String> configsToResolveCopy = new LinkedHashSet<>(configsToResolve);
+                configsToResolveCopy.retainAll(availableConfigurations);
+                options.setConfs(configsToResolveCopy.toArray(new String[0]));
+            }
         }
         return options;
     }
@@ -82,7 +102,7 @@ public class IvyIdeaConfigHelper {
             return Collections.unmodifiableSet(moduleConfiguration.getConfigsToResolve());
         } else {
             GeneralIvyIdeaSettings currentConfig = getCurrentConfig(module.getProject());
-            return currentConfig.getResolveOnlyConfigs();
+            return Collections.unmodifiableSet(currentConfig.getResolveOnlyConfigs());
         }
     }
 

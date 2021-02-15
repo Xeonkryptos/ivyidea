@@ -18,6 +18,15 @@ package org.clarent.ivyidea.ivy;
 
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.project.Project;
+import java.io.File;
+import java.io.IOException;
+import java.text.ParseException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.logging.Logger;
 import org.apache.ivy.Ivy;
 import org.apache.ivy.core.event.EventManager;
 import org.apache.ivy.core.module.descriptor.Configuration;
@@ -33,15 +42,6 @@ import org.clarent.ivyidea.logging.ConsoleViewMessageLogger;
 import org.clarent.ivyidea.util.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.io.File;
-import java.io.IOException;
-import java.text.ParseException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.logging.Logger;
 
 /**
  * @author Guy Mahieu
@@ -115,7 +115,6 @@ public class IvyUtil {
      * @throws java.text.ParseException if there was an error parsing the ivy file; if the file
      *                                  does not exist or is a directory, no exception will be thrown
      */
-    @Nullable
     public static Set<Configuration> loadConfigurations(@NotNull String ivyFileName, @NotNull Ivy ivy) throws ParseException {
         try {
             final File file = new File(ivyFileName);
@@ -124,16 +123,15 @@ public class IvyUtil {
                 Set<Configuration> result = new TreeSet<>((o1, o2) -> o1.getName().compareToIgnoreCase(o2.getName()));
                 result.addAll(Arrays.asList(md.getConfigurations()));
                 return result;
-            } else {
-                return null;
             }
+            return Collections.emptySet();
         } catch (RuntimeException e) {
             // Not able to parse module descriptor; no problem here...
             LOGGER.info("Error while parsing ivy file during attempt to load configurations from it: " + e);
             if (e.getCause() instanceof ParseException) {
                 throw (ParseException) e.getCause();
             }
-            return null;
+            return Collections.emptySet();
         }
     }
 

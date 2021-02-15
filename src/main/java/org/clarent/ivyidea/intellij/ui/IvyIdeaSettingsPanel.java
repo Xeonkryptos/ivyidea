@@ -27,7 +27,6 @@ import com.intellij.ui.EditorTextField;
 import com.intellij.ui.UserActivityWatcher;
 import com.intellij.uiDesigner.core.GridConstraints;
 import java.awt.BorderLayout;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -167,8 +166,12 @@ public class IvyIdeaSettingsPanel {
     }
 
     public boolean isModified() {
-        commitWatcherState();
-        return watcher.isModified();
+        return watcher.isModified() ||
+               !uiInternalApplicationSettingsState.equals(applicationSettingsState.getGeneralIvyIdeaSettings()) ||
+               !uiInternalProjectSettingsState.equals(projectSettingsState.getGeneralIvyIdeaSettings()) ||
+               !Objects.equals(applicationSettingsState.getIvyTemplateContent(), txtIvyApplicationTemplateEditor.getText()) ||
+               !Objects.equals(projectSettingsState.getIvyTemplateContent(), txtIvyProjectTemplateEditor.getText()) ||
+               !projectSettingsState.isUseApplicationSettings() == useApplicationSettingsRadioButton.isSelected();
     }
 
     private List<String> getPropertiesFiles() {
@@ -188,6 +191,7 @@ public class IvyIdeaSettingsPanel {
         applyingStates = true;
         applicationSettingsState.updateWith(uiInternalApplicationSettingsState);
         projectSettingsState.updateWith(uiInternalProjectSettingsState);
+        watcher.commit();
         applyingStates = false;
     }
 
@@ -231,12 +235,18 @@ public class IvyIdeaSettingsPanel {
         String ivyProjectTemplateContent = txtIvyProjectTemplateEditor.getText();
         projectSettingsState.setIvyTemplateContent(ivyProjectTemplateContent);
 
-        String[] resolveOnlyConfigs = txtResolveOnlyConfigs.getText().split("\\s*,\\s*");
+        String ivyResolveConfigsString = txtResolveOnlyConfigs.getText();
         Set<String> resolveOnlyConfigsSet = new LinkedHashSet<>();
-        if (resolveOnlyConfigs.length > 0) {
-            resolveOnlyConfigsSet.addAll(Arrays.asList(resolveOnlyConfigs));
+        if (ivyResolveConfigsString != null && !ivyResolveConfigsString.isBlank()) {
+            String[] resolveOnlyConfigs = ivyResolveConfigsString.split("\\s*,\\s*");
+            for (String resolveOnlyConfig : resolveOnlyConfigs) {
+                if (!resolveOnlyConfig.isBlank()) {
+                    resolveOnlyConfigsSet.add(resolveOnlyConfig.trim());
+                }
+            }
         }
         uiCurrentSettingsState.setResolveOnlyConfigs(resolveOnlyConfigsSet);
+        watcher.commit();
         applyingStates = false;
     }
 
@@ -333,12 +343,12 @@ public class IvyIdeaSettingsPanel {
     }
 
     private void commitWatcherState() {
-        if (watcher.isModified() &&
-            uiInternalApplicationSettingsState.equals(applicationSettingsState.getGeneralIvyIdeaSettings()) &&
-            uiInternalProjectSettingsState.equals(projectSettingsState.getGeneralIvyIdeaSettings()) &&
-            Objects.equals(applicationSettingsState.getIvyTemplateContent(), txtIvyApplicationTemplateEditor.getText()) &&
-            Objects.equals(projectSettingsState.getIvyTemplateContent(), txtIvyProjectTemplateEditor.getText()) &&
-            projectSettingsState.isUseApplicationSettings() == useApplicationSettingsRadioButton.isSelected()) {
+        if (watcher.isModified() ||
+            !uiInternalApplicationSettingsState.equals(applicationSettingsState.getGeneralIvyIdeaSettings()) ||
+            !uiInternalProjectSettingsState.equals(projectSettingsState.getGeneralIvyIdeaSettings()) ||
+            !Objects.equals(applicationSettingsState.getIvyTemplateContent(), txtIvyApplicationTemplateEditor.getText()) ||
+            !Objects.equals(projectSettingsState.getIvyTemplateContent(), txtIvyProjectTemplateEditor.getText()) ||
+            !projectSettingsState.isUseApplicationSettings() == useApplicationSettingsRadioButton.isSelected()) {
             watcher.commit();
         }
     }

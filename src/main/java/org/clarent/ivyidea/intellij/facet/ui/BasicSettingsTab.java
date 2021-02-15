@@ -140,8 +140,8 @@ public class BasicSettingsTab extends FacetEditorTab {
         final Set<Configuration> allConfigurations;
         try {
             allConfigurations = loadConfigurations();
-            chkOnlyResolveSpecificConfigs.setEnabled(allConfigurations != null);
-            if (allConfigurations != null) {
+            chkOnlyResolveSpecificConfigs.setEnabled(!allConfigurations.isEmpty());
+            if (!allConfigurations.isEmpty()) {
                 LOGGER.info("Detected configs in file " + txtIvyFile.getText() + ": " + allConfigurations.toString());
                 tblConfigurationSelection.setModel(new ConfigurationSelectionTableModel(allConfigurations, getNames(selectedConfigurations)));
                 tblConfigurationScope.setModel(new ConfigurationScopeTableModel(allConfigurations, dependencyScopes));

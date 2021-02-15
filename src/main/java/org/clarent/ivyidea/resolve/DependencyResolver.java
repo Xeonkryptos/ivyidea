@@ -108,7 +108,7 @@ class DependencyResolver {
         final Ivy ivy = ivyManager.getIvy(module);
         try {
             analyzeConfigurations(ivyFile, ivy);
-            ResolveOptions resolveOptions = IvyIdeaConfigHelper.createResolveOptions(module);
+            ResolveOptions resolveOptions = IvyIdeaConfigHelper.createResolveOptions(module, ivyManager);
             final ResolveReport resolveReport = ivy.resolve(ivyFile, resolveOptions);
             extractDependencies(ivy, resolveReport, new IntellijModuleDependencies(module, ivyManager));
         } catch (ParseException | IOException e) {
@@ -120,7 +120,7 @@ class DependencyResolver {
         Set<Configuration> configurations = IvyUtil.loadConfigurations(ivyFile.getAbsolutePath(), ivy);
 
         List<String> sortedConfigurations = Collections.emptyList();
-        if (configurations != null) {
+        if (!configurations.isEmpty()) {
             /*
              * Configurations extends from each other leading to a configuration graph and a multi-mapping of
              * dependencies to different configurations. Thus, you'll get duplicates of the same dependency for
