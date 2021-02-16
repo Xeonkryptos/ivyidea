@@ -72,6 +72,7 @@
 
         <projectConfigurable id="IvyIDEA.ProjectSettings"
                              instance="org.clarent.ivyidea.intellij.ui.IvyIdeaProjectSettingsComponent"
+                             parentId="tools"
                              displayName="IvyIDEA"/>
     </extensions>
 </idea-plugin>
